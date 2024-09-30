@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader};
+use std::{env::var, fs::File, io::BufReader, net::SocketAddr};
 
 use axum::{
     extract::Path,
@@ -31,6 +31,13 @@ struct PostImages {
 
 #[tokio::main]
 async fn main() {
+    let port = var("PORT")
+        .ok()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(8000);
+
+    // let url = var("DATABASE_URL").unwrap_or("ks".to_string());
+
     // Configura o middleware CORS
     let cors = CorsLayer::new()
         .allow_origin(Any) // Permitir requisições de qualquer origem
@@ -45,8 +52,11 @@ async fn main() {
         .layer(cors); // Aplica o CORS como camada
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    axum_server::bind(addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
 }
 
 async fn get_post_titles() -> impl IntoResponse {
