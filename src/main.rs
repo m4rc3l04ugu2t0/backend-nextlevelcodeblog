@@ -1,6 +1,7 @@
 use std::{fs::File, io::BufReader};
 
 use axum::{
+    extract::Path,
     http::{Method, StatusCode},
     response::IntoResponse,
     routing::get,
@@ -20,6 +21,14 @@ struct Post {
     img: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+struct PostImages {
+    ip_a: String,
+    lsblk: String,
+    cfdisk: String,
+    pattions: String,
+}
+
 #[tokio::main]
 async fn main() {
     // Configura o middleware CORS
@@ -30,18 +39,19 @@ async fn main() {
 
     // build our application with a single route
     let app = Router::new()
-        .route("/posts", get(get_posts))
-        .nest_service("/assets", ServeDir::new("src/assets"))
+        .route("/api/posts", get(get_post_titles))
+        .route("/api/:id/image", get(get_post_images))
+        .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors); // Aplica o CORS como camada
 
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:9999").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn get_posts() -> impl IntoResponse {
+async fn get_post_titles() -> impl IntoResponse {
     // Carrega o arquivo JSON
-    let file = File::open("src/posts.json").expect("Arquivo JSON não encontrado");
+    let file = File::open("src/config/posts_titles.json").expect("Arquivo JSON não encontrado");
     let reader = BufReader::new(file);
 
     // Desserializa o JSON em um vetor de Posts
@@ -49,4 +59,17 @@ async fn get_posts() -> impl IntoResponse {
 
     // Retorna os posts como resposta JSON
     (StatusCode::OK, Json(posts))
+}
+
+async fn get_post_images(Path(post_name): Path<String>) -> impl IntoResponse {
+    // Carrega o arquivo JSON
+    let file = File::open(format!("src/config/{}/post_media.json", post_name))
+        .expect("Arquivo JSON não encontrado");
+    let reader = BufReader::new(file);
+
+    // Desserializa o JSON em um vetor de Posts
+    let post_images: Vec<PostImages> = serde_json::from_reader(reader).expect("Erro ao ler o JSON");
+
+    // Retorna os posts como resposta JSON
+    (StatusCode::OK, Json(post_images))
 }

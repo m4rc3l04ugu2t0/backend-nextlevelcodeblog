@@ -1,0 +1,8 @@
+[
+    {
+        "ip_a": "http://192.168.0.107/api/assets/ArchLinuxInstallGuide/ip_a.png",
+        "lsblk": "http://192.168.0.107/api/assets/ArchLinuxInstallGuide/lsblk.png",
+        "cfdisk": "http://192.168.0.107/api/assets/ArchLinuxInstallGuide/cfdisk.mp4",
+        "pattions": "http://192.168.0.107/api/assets/ArchLinuxInstallGuide/pattions.png"
+    }
+]
