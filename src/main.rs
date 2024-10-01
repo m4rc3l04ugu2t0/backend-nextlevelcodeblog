@@ -112,6 +112,13 @@ impl PostgresRepository {
 
         Ok(post)
     }
+
+    pub async fn find_post_by_name(&self, name: &str) -> Result<Option<Post>, sqlx::Error> {
+        sqlx::query_as("SELECT id, name, title, description, images FROM posts WHERE name = $1")
+            .bind(name)
+            .fetch_optional(&self.pool)
+            .await
+    }
 }
 
 // Handler para buscar um post pelo ID
@@ -167,6 +174,21 @@ async fn add_images_to_post(
     }
 }
 
+async fn get_images_by_post_name(
+    State(state): State<Arc<AppState>>,
+    Path(post_name): Path<String>,
+) -> impl IntoResponse {
+    // Busque o post pelo nome
+    match state.repository.find_post_by_name(&post_name).await {
+        Ok(Some(post)) => Ok(Json(post.images)), // Retorna as imagens
+        Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, "Post not found")),
+        Err(_) => Err((
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Database error",
+        )),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -194,6 +216,7 @@ async fn main() {
         .route("/api/posts", post(create_post))
         .route("/api/post/:id", get(get_post_by_id))
         .route("/api/posts/:id/images", post(add_images_to_post))
+        .route("/api/posts/:name/images", get(get_images_by_post_name)) // Nova rota
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
         .with_state(app_state); // Aplica o CORS como camada
