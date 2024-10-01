@@ -216,7 +216,7 @@ async fn main() {
         .route("/api/posts", post(create_post))
         .route("/api/post/:id", get(get_post_by_id))
         .route("/api/posts/:id/images", post(add_images_to_post))
-        .route("/api/posts/:name/images", get(get_images_by_post_name)) // Nova rota
+        .route("/api/post/:id/images", get(get_images_by_post_name)) // Nova rota
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
         .with_state(app_state); // Aplica o CORS como camada
