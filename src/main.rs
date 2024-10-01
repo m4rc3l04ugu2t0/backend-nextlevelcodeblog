@@ -1,5 +1,5 @@
 use axum::http::Method;
-use axum::routing::{get, post};
+use axum::routing::{delete, get, post};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -121,6 +121,16 @@ impl PostgresRepository {
             .fetch_optional(&self.pool)
             .await
     }
+
+    pub async fn delete_post_by_name(&self, post_name: &str) -> Result<(), sqlx::Error> {
+        // Deleta o post pelo nome
+        sqlx::query("DELETE FROM posts WHERE name = $1")
+            .bind(post_name)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
 }
 
 // Handler para buscar um post pelo ID
@@ -196,6 +206,20 @@ async fn get_images_by_post_name(
     }
 }
 
+async fn delete_post(
+    State(state): State<Arc<AppState>>,
+    Path(post_name): Path<String>,
+) -> impl IntoResponse {
+    match state.repository.delete_post_by_name(&post_name).await {
+        Ok(_) => (axum::http::StatusCode::NO_CONTENT).into_response(),
+        Err(_) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to delete post",
+        )
+            .into_response(),
+    }
+}
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
@@ -224,6 +248,7 @@ async fn main() {
         .route("/api/post/:id", get(get_post_by_id))
         .route("/api/posts/:name/images", post(add_images_to_post))
         .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
+        .route("/api/delete/:name", delete(delete_post))
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
         .with_state(app_state); // Aplica o CORS como camada
