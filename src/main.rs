@@ -91,22 +91,24 @@ impl PostgresRepository {
     // Função para adicionar imagens a um post
     pub async fn add_images(
         &self,
-        post_id: Uuid,
+        post_name: &str,
         new_images: Vec<String>,
     ) -> Result<Post, sqlx::Error> {
-        let mut post: Post =
-            sqlx::query_as("SELECT id, name, title, description, images FROM posts WHERE id = $1")
-                .bind(post_id)
-                .fetch_one(&self.pool)
-                .await?;
+        // Busca o post pelo nome
+        let mut post: Post = sqlx::query_as(
+            "SELECT id, name, title, description, images FROM posts WHERE name = $1",
+        )
+        .bind(post_name)
+        .fetch_one(&self.pool)
+        .await?;
 
         // Adiciona as novas imagens ao vetor existente
         post.images.extend(new_images);
 
-        // Atualiza o banco de dados
-        sqlx::query("UPDATE posts SET images = $1 WHERE id = $2")
+        // Atualiza o banco de dados com as novas imagens
+        sqlx::query("UPDATE posts SET images = $1 WHERE name = $2")
             .bind(&post.images)
-            .bind(post_id)
+            .bind(post_name)
             .execute(&self.pool)
             .await?;
 
@@ -162,11 +164,15 @@ async fn create_post(
 
 async fn add_images_to_post(
     State(state): State<Arc<AppState>>,
-    Path(post_id): Path<Uuid>,
-    Json(request): Json<AddImagesRequest>,
+    Path(post_name): Path<String>,
+    Json(add_images_request): Json<AddImagesRequest>,
 ) -> impl IntoResponse {
-    match state.repository.add_images(post_id, request.images).await {
-        Ok(post) => Ok(Json(post)), // Retorna o post atualizado
+    match state
+        .repository
+        .add_images(&post_name, add_images_request.images)
+        .await
+    {
+        Ok(post) => Ok((axum::http::StatusCode::OK, Json(post))),
         Err(_) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to add images",
@@ -179,6 +185,7 @@ async fn get_images_by_post_name(
     Path(post_name): Path<String>,
 ) -> impl IntoResponse {
     // Busque o post pelo nome
+    println!("{}", post_name);
     match state.repository.find_post_by_name(&post_name).await {
         Ok(Some(post)) => Ok(Json(post.images)), // Retorna as imagens
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, "Post not found")),
@@ -215,8 +222,8 @@ async fn main() {
         .route("/api/posts", get(list_posts))
         .route("/api/posts", post(create_post))
         .route("/api/post/:id", get(get_post_by_id))
-        .route("/api/posts/:id/images", post(add_images_to_post))
-        .route("/api/post/:id/images", get(get_images_by_post_name)) // Nova rota
+        .route("/api/posts/:name/images", post(add_images_to_post))
+        .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
         .with_state(app_state); // Aplica o CORS como camada
