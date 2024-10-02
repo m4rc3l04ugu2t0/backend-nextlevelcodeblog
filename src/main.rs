@@ -285,7 +285,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins) // Restringir a origens específicas
-        .allow_methods([Method::GET])
+        .allow_methods([Method::GET, Method::POST])
         .allow_headers(Any);
 
     // build our application with a single route
