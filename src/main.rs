@@ -230,16 +230,19 @@ async fn main() {
 
     let db_url = var("DATABASE_URL").expect("DATABASE_URL must be set");
 
+    // let api_key_midleware = var("API_KEY")
+
     // Conectar ao banco de dados
     let repo = PostgresRepository::connect(&db_url).await;
 
     let app_state = Arc::new(AppState { repository: repo });
 
-    // Configura o middleware CORS
+    let allowed_origins = ["https://nextlevelcodeblog.onrender.com".parse().unwrap()];
+
     let cors = CorsLayer::new()
-        .allow_origin(Any) // Permitir requisições de qualquer origem
-        .allow_methods([Method::GET]) // Permitir apenas GET e POST
-        .allow_headers(Any); // Permitir qualquer cabeçalho
+        .allow_origin(allowed_origins) // Restringir a origens específicas
+        .allow_methods([Method::GET])
+        .allow_headers(Any);
 
     // build our application with a single route
     let app = Router::new()
@@ -251,7 +254,7 @@ async fn main() {
         .route("/api/delete/:name", delete(delete_post))
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
-        .with_state(app_state); // Aplica o CORS como camada
+        .with_state(app_state);
 
     // run our app with hyper, listening globally on port 3000
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
