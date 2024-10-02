@@ -1,5 +1,5 @@
 use axum::http::Method;
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -35,6 +35,12 @@ pub struct NewPost {
     pub title: String,
     pub description: String,
     pub images: Vec<String>, // Um array de URLs de imagens
+}
+
+#[derive(Deserialize)]
+pub struct UpdatePostFields {
+    pub title: String,
+    pub description: String,
 }
 
 #[derive(Deserialize)]
@@ -122,6 +128,22 @@ impl PostgresRepository {
             .await
     }
 
+    pub async fn update_post(
+        &self,
+        id: Uuid,
+        new_title: String,
+        new_description: String,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE posts SET title = $1, description = $2 WHERE id = $3")
+            .bind(new_title) // O novo título
+            .bind(new_description) // A nova descrição
+            .bind(id) // O ID do post
+            .execute(&self.pool)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn delete_post_by_name(&self, post_name: &str) -> Result<(), sqlx::Error> {
         // Deleta o post pelo nome
         sqlx::query("DELETE FROM posts WHERE name = $1")
@@ -206,6 +228,28 @@ async fn get_images_by_post_name(
     }
 }
 
+async fn update_post_fields(
+    State(state): State<Arc<AppState>>,
+    Path(post_id): Path<Uuid>, // Usar o ID do post na URL
+    Json(update_fields): Json<UpdatePostFields>,
+) -> impl IntoResponse {
+    // Inverte o conteúdo de title e description
+    let new_title = update_fields.description.clone();
+    let new_description = update_fields.title.clone();
+
+    match state
+        .repository
+        .update_post(post_id, new_title, new_description)
+        .await
+    {
+        Ok(_) => Ok((axum::http::StatusCode::OK, "Post updated successfully")),
+        Err(_) => Err((
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to update post",
+        )),
+    }
+}
+
 async fn delete_post(
     State(state): State<Arc<AppState>>,
     Path(post_name): Path<String>,
@@ -251,6 +295,7 @@ async fn main() {
         .route("/api/post/:id", get(get_post_by_id))
         .route("/api/posts/:name/images", post(add_images_to_post))
         .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
+        .route("/api/posts/update/:id", put(update_post_fields))
         .route("/api/delete/:name", delete(delete_post))
         .nest_service("/api/assets", ServeDir::new("src/assets"))
         .layer(cors)
