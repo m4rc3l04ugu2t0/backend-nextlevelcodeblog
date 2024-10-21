@@ -226,7 +226,7 @@ async fn main() {
     let port = var("PORT")
         .ok()
         .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(8000);
+        .unwrap_or(3000);
 
     let db_url = var("DATABASE_URL").expect("DATABASE_URL must be set");
 
