@@ -58,6 +58,22 @@ impl PostgresRepository {
         PostgresRepository { pool }
     }
 
+    pub async fn create_table(&self) -> Result<(), sqlx::Error> {
+        let create_table_query = r#"
+                CREATE TABLE posts IF NOT EXISTS posts (
+                id UUID PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                description TEXT NOT NULL,
+                images TEXT[] -- Um array de URLs das imagens
+);
+        "#;
+
+        sqlx::query(create_table_query).execute(&self.pool).await?;
+
+        Ok(())
+    }
+
     // Função para buscar um post pelo ID
     pub async fn find_post(&self, id: Uuid) -> Result<Option<Post>, sqlx::Error> {
         sqlx::query_as("SELECT id, name, title, description, images FROM posts WHERE id = $1")
@@ -163,6 +179,7 @@ async fn create_post(
     State(state): State<Arc<AppState>>,
     Json(new_post): Json<NewPost>,
 ) -> impl IntoResponse {
+    println!("slsl");
     match state.repository.create_post(new_post).await {
         Ok(post) => Ok((axum::http::StatusCode::CREATED, Json(post))),
         Err(_) => Err((
@@ -234,6 +251,10 @@ async fn main() {
 
     // Conectar ao banco de dados
     let repo = PostgresRepository::connect(&db_url).await;
+
+    if let Err(err) = repo.create_table().await {
+        eprintln!("Failed to create table: {}", err);
+    }
 
     let app_state = Arc::new(AppState { repository: repo });
 
