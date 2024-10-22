@@ -7,6 +7,7 @@ WORKDIR /usr/src/backend-newsletter
 COPY . .
 
 # Compila o projeto em modo release
+RUN cargo install --path .
 RUN cargo build --release
 
 # Etapa 2: Final

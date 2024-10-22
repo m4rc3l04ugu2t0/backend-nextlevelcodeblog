@@ -11,10 +11,10 @@ services:
     depends_on:
       - db
     environment:
-      POSTGRES_DB: smart_db
-      POSTGRES_USER: smart_user
-      POSTGRES_PASSWORD: smart_password
-      DATABASE_URL: "postgres://smart_user:smart_password@db:5432/smart_db"
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
     restart: unless-stopped
   
   nginx:
@@ -34,9 +34,9 @@ services:
     image: postgres:14
     container_name: postgres_db
     environment:
-      POSTGRES_DB: smart_db
-      POSTGRES_USER: smart_user
-      POSTGRES_PASSWORD: smart_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

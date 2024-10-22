@@ -49,6 +49,7 @@ pub struct PostgresRepository {
 
 impl PostgresRepository {
     pub async fn connect(db_url: &str) -> Self {
+        println!("kk");
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(db_url)
@@ -60,7 +61,7 @@ impl PostgresRepository {
 
     pub async fn create_table(&self) -> Result<(), sqlx::Error> {
         let create_table_query = r#"
-                CREATE TABLE posts IF NOT EXISTS posts (
+                CREATE TABLE IF NOT EXISTS posts (
                 id UUID PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
                 title VARCHAR(255) NOT NULL,
