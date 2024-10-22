@@ -180,7 +180,6 @@ async fn create_post(
     State(state): State<Arc<AppState>>,
     Json(new_post): Json<NewPost>,
 ) -> impl IntoResponse {
-    println!("slsl");
     match state.repository.create_post(new_post).await {
         Ok(post) => Ok((axum::http::StatusCode::CREATED, Json(post))),
         Err(_) => Err((
@@ -241,14 +240,14 @@ async fn delete_post(
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-    // let port = var("PORT")
-    //     .ok()
-    //     .and_then(|p| p.parse::<u16>().ok())
-    //     .unwrap_or(3000);
-    let port = 3000;
+    let port = var("PORT")
+        .ok()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(3000);
 
     let db_url = var("DATABASE_URL").expect("DATABASE_URL must be set");
 
+    println!("{} - {}", port, db_url);
     // let api_key_midleware = var("API_KEY")
 
     // Conectar ao banco de dados

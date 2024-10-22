@@ -3,40 +3,41 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    depends_on:
+      - db
     ports:  
       - "3000:3000"
     container_name: backend-newsletter
     networks:
       - smart-network
-    depends_on:
-      - db
     environment:
-      POSTGRES_DB: smart_db
-      POSTGRES_USER: smart_user
-      POSTGRES_PASSWORD: smart_password
-      DATABASE_URL: postgresql://smart_user:smart_password@db:5432/smart_db
+      POSTGRES_DB: ${POSTGRES_DB} 
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}
+      PORT: ${PORT}
     restart: unless-stopped
   
   nginx:
     image: nginx
     container_name: nginx
+    depends_on:
+      - backend-newsletter
     ports:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-    depends_on:
-      - backend-newsletter
     networks:
       - smart-network
     restart: unless-stopped
   
   db:
-    image: postgres
+    image: postgres:15
     container_name: postgres_db
     environment:
-      POSTGRES_DB: smart_db
-      POSTGRES_USER: smart_user
-      POSTGRES_PASSWORD: smart_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
