@@ -14,7 +14,7 @@ services:
       POSTGRES_DB: smart_db
       POSTGRES_USER: smart_user
       POSTGRES_PASSWORD: smart_password
-      DATABASE_URL: "postgresql://smart_user:smart_password@db:5432/smart_db"
+      DATABASE_URL: postgresql://smart_user:smart_password@db:5432/smart_db
     restart: unless-stopped
   
   nginx:

@@ -241,10 +241,11 @@ async fn delete_post(
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().ok();
-    let port = var("PORT")
-        .ok()
-        .and_then(|p| p.parse::<u16>().ok())
-        .unwrap_or(3000);
+    // let port = var("PORT")
+    //     .ok()
+    //     .and_then(|p| p.parse::<u16>().ok())
+    //     .unwrap_or(3000);
+    let port = 3000;
 
     let db_url = var("DATABASE_URL").expect("DATABASE_URL must be set");
 
