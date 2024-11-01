@@ -49,7 +49,6 @@ pub struct PostgresRepository {
 
 impl PostgresRepository {
     pub async fn connect(db_url: &str) -> Self {
-        println!("kk");
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(db_url)
@@ -245,7 +244,7 @@ async fn main() {
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(3000);
 
-    let db_url = var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db_url = var("POSTGRES_URL").expect("DATABASE_URL must be set");
 
     println!("{} - {}", port, db_url);
     // let api_key_midleware = var("API_KEY")
