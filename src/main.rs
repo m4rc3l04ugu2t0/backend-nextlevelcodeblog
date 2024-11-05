@@ -1,4 +1,7 @@
-use axum::http::Method;
+use axum::body::Body;
+use axum::http::{HeaderMap, Method, Request, StatusCode};
+use axum::middleware::{from_fn_with_state, Next};
+use axum::response::Response;
 use axum::routing::{delete, get, post, put};
 use axum::{
     extract::{Path, State},
@@ -17,6 +20,7 @@ use uuid::Uuid;
 // Definir o estado da aplicação
 pub struct AppState {
     pub repository: PostgresRepository,
+    pub api_key: String,
 }
 
 // Estruturas para os dados
@@ -255,12 +259,21 @@ async fn delete_post(
     Path(post_name): Path<String>,
 ) -> impl IntoResponse {
     match state.repository.delete_post_by_name(&post_name).await {
-        Ok(_) => (axum::http::StatusCode::NO_CONTENT).into_response(),
-        Err(_) => (
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to delete post",
-        )
-            .into_response(),
+        Ok(_) => (StatusCode::NO_CONTENT).into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to delete post").into_response(),
+    }
+}
+
+async fn require_api_key(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    req: Request<Body>,
+    next: Next,
+) -> Result<Response, Response> {
+    match headers.get("x-api-key") {
+        Some(header_value) if header_value == &state.api_key => Ok(next.run(req).await),
+        Some(_) => Err((StatusCode::UNAUTHORIZED, "Invalid API Key").into_response()),
+        None => Err((StatusCode::UNAUTHORIZED, "Missing API Key").into_response()),
     }
 }
 
@@ -272,13 +285,18 @@ async fn main() {
         .and_then(|p| p.parse::<u16>().ok())
         .unwrap_or(8000);
 
+    let api_key = var("API_KEY").expect("API_KEY must be set");
+
     let db_url = var("POSTGRES_URL").expect("POSTGRES_URL must be set");
 
     let repo = PostgresRepository::connect(&db_url).await;
 
-    let app_state = Arc::new(AppState { repository: repo });
+    let app_state = Arc::new(AppState {
+        repository: repo,
+        api_key,
+    });
 
-    let allowed_origins = ["https://nextlevelcodeblog.netlify.app".parse().unwrap()];
+    let allowed_origins = ["http://localhost:3000".parse().unwrap()];
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins)
@@ -295,8 +313,9 @@ async fn main() {
         .route("/api/posts/update/:id", put(update_post_fields))
         .route("/api/delete/:name", delete(delete_post))
         .nest_service("/api/assets", ServeDir::new("src/assets"))
+        .with_state(app_state.clone())
         .layer(cors)
-        .with_state(app_state);
+        .layer(from_fn_with_state(app_state, require_api_key));
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     axum_server::bind(addr)
