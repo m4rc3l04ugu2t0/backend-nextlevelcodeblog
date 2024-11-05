@@ -91,7 +91,7 @@ impl PostgresRepository {
 
     pub async fn create_post(&self, new_post: NewPost) -> Result<Post, sqlx::Error> {
         sqlx::query_as(
-            "INSERT INTO posts (id, name, title, description, images) 
+            "INSERT INTO posts (id, name, title, description, images)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, name, title, description, images",
         )
@@ -258,7 +258,7 @@ async fn main() {
 
     let app_state = Arc::new(AppState { repository: repo });
 
-    let allowed_origins = ["https://nextlevelcodeblog.onrender.com".parse().unwrap()];
+    let allowed_origins = ["http://localhost:3000/".parse().unwrap()];
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins) // Restringir a origens específicas
@@ -270,7 +270,7 @@ async fn main() {
         .route("/api/posts", get(list_posts))
         .route("/api/posts", post(create_post))
         .route("/api/post/:id", get(get_post_by_id))
-        .route("/api/posts/:name/images", post(add_images_to_post))
+        .route("/api/post/:name/images", post(add_images_to_post))
         .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
         .route("/api/delete/:name", delete(delete_post))
         .nest_service("/api/assets", ServeDir::new("src/assets"))
