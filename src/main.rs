@@ -296,7 +296,7 @@ async fn main() {
         api_key,
     });
 
-    let allowed_origins = ["http://localhost:3000".parse().unwrap()];
+    let allowed_origins = ["https://nextlevelcodeblog.netlify.app".parse().unwrap()];
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins)
