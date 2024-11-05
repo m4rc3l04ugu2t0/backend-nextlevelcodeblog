@@ -81,7 +81,7 @@ impl PostgresRepository {
 
     pub async fn create_post(&self, new_post: NewPost) -> Result<Post, sqlx::Error> {
         sqlx::query_as(
-            "INSERT INTO posts (id, name, title, description, images) 
+            "INSERT INTO posts (id, name, title, description, images)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, name, title, description, images",
         )
@@ -274,9 +274,6 @@ async fn main() {
 
     let db_url = var("POSTGRES_URL").expect("POSTGRES_URL must be set");
 
-    // let api_key_midleware = var("API_KEY")
-
-    // Conectar ao banco de dados
     let repo = PostgresRepository::connect(&db_url).await;
 
     let app_state = Arc::new(AppState { repository: repo });
@@ -285,7 +282,7 @@ async fn main() {
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins) // Restringir a origens específicas
-        .allow_methods([Method::GET, Method::POST])
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(Any);
 
     // build our application with a single route
@@ -301,7 +298,6 @@ async fn main() {
         .layer(cors)
         .with_state(app_state);
 
-    // run our app with hyper, listening globally on port 3000
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     axum_server::bind(addr)
         .serve(app.into_make_service())
