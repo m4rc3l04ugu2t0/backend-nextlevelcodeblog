@@ -1,4 +1,5 @@
 use axum::body::Body;
+use axum::http::header::{ACCEPT, ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE};
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
@@ -301,7 +302,12 @@ async fn main() {
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
-        .allow_headers(Any);
+        .allow_headers([
+            CONTENT_TYPE,
+            AUTHORIZATION,
+            ACCEPT,
+            ACCESS_CONTROL_ALLOW_ORIGIN,
+        ]);
 
     // build our application with a single route
     let app = Router::new()
