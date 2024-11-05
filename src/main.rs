@@ -1,5 +1,8 @@
 use axum::body::Body;
-use axum::http::header::{ACCEPT, ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE};
+use axum::http::header::{
+    ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
+    ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE,
+};
 use axum::http::{HeaderMap, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
@@ -14,7 +17,7 @@ use sqlx::postgres::PgPoolOptions;
 use sqlx::PgPool;
 use std::env::var;
 use std::{net::SocketAddr, sync::Arc};
-use tower_http::cors::{Any, CorsLayer};
+use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use uuid::Uuid;
 
@@ -307,6 +310,8 @@ async fn main() {
             AUTHORIZATION,
             ACCEPT,
             ACCESS_CONTROL_ALLOW_ORIGIN,
+            ACCESS_CONTROL_ALLOW_HEADERS,
+            ACCESS_CONTROL_ALLOW_CREDENTIALS,
         ]);
 
     // build our application with a single route
