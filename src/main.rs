@@ -278,10 +278,10 @@ async fn main() {
 
     let app_state = Arc::new(AppState { repository: repo });
 
-    let allowed_origins = ["https://nextlevelcodeblog.onrender.com".parse().unwrap()];
+    let allowed_origins = ["https://nextlevelcodeblog.netlify.app".parse().unwrap()];
 
     let cors = CorsLayer::new()
-        .allow_origin(allowed_origins) // Restringir a origens específicas
+        .allow_origin(allowed_origins)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
         .allow_headers(Any);
 
