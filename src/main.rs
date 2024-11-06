@@ -3,7 +3,7 @@ use axum::http::header::{
     ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
     ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE,
 };
-use axum::http::{HeaderMap, Method, Request, StatusCode};
+use axum::http::{HeaderMap, HeaderValue, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
 use axum::routing::{delete, get, post, put};
@@ -300,11 +300,19 @@ async fn main() {
         api_key,
     });
 
-    let allowed_origins = ["https://nextlevelcodeblog.netlify.app".parse().unwrap()];
+    let allowed_origins = ["https://nextlevelcodeblog.netlify.app"
+        .parse::<HeaderValue>()
+        .unwrap()];
 
     let cors = CorsLayer::new()
         .allow_origin(allowed_origins)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
         .allow_headers([
             CONTENT_TYPE,
             AUTHORIZATION,
