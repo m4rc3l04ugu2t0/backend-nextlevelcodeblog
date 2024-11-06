@@ -181,7 +181,7 @@ async fn get_post_by_id(
 // Handler para listar todos os posts
 async fn list_posts(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     match state.repository.list_posts().await {
-        Ok(posts) => Ok(Json(posts)),
+        Ok(posts) => Ok((StatusCode::OK, Json(posts))),
         Err(_) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to fetch posts",
@@ -194,11 +194,8 @@ async fn create_post(
     Json(new_post): Json<NewPost>,
 ) -> impl IntoResponse {
     match state.repository.create_post(new_post).await {
-        Ok(post) => Ok((axum::http::StatusCode::CREATED, Json(post))),
-        Err(_) => Err((
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to create post",
-        )),
+        Ok(post) => Ok((StatusCode::CREATED, Json(post))),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to create post")),
     }
 }
 
@@ -212,11 +209,8 @@ async fn add_images_to_post(
         .add_images(&post_name, add_images_request.images)
         .await
     {
-        Ok(post) => Ok((axum::http::StatusCode::OK, Json(post))),
-        Err(_) => Err((
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to add images",
-        )),
+        Ok(post) => Ok((StatusCode::OK, Json(post))),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to add images")),
     }
 }
 
@@ -227,12 +221,9 @@ async fn get_images_by_post_name(
     // Busque o post pelo nome
     println!("{}", post_name);
     match state.repository.find_post_by_name(&post_name).await {
-        Ok(Some(post)) => Ok(Json(post.images)), // Retorna as imagens
-        Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, "Post not found")),
-        Err(_) => Err((
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Database error",
-        )),
+        Ok(Some(post)) => Ok((StatusCode::OK, Json(post.images))), // Retorna as imagens
+        Ok(None) => Err((StatusCode::NOT_FOUND, "Post not found")),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Database error")),
     }
 }
 
@@ -251,10 +242,7 @@ async fn update_post_fields(
         .await
     {
         Ok(_) => Ok((axum::http::StatusCode::OK, "Post updated successfully")),
-        Err(_) => Err((
-            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to update post",
-        )),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to update post")),
     }
 }
 
