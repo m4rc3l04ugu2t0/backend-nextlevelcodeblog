@@ -6,7 +6,7 @@ use axum::http::header::{
 use axum::http::{HeaderValue, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
-use axum::routing::{delete, get, post, put};
+use axum::routing::{delete, get, get_service, post, put};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -255,6 +255,10 @@ async fn delete_post(
     }
 }
 
+fn routes_static() -> Router {
+    Router::new().nest_service("/", get_service(ServeDir::new("./")))
+}
+
 async fn require_api_key(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
     // Se o método for OPTIONS, pule a autenticação
     if req.method() == axum::http::Method::OPTIONS {
@@ -326,7 +330,7 @@ async fn main() {
         .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
         .route("/api/posts/update/:id", put(update_post_fields))
         .route("/api/delete/:name", delete(delete_post))
-        .nest_service("/api/assets", ServeDir::new("src/assets"))
+        .fallback_service(routes_static())
         .with_state(app_state.clone())
         .layer(cors)
         .layer(from_fn_with_state(app_state, require_api_key));
