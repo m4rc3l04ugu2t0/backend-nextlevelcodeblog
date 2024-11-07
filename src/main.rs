@@ -262,7 +262,7 @@ async fn require_api_key(
     req: Request<Body>,
     next: Next,
 ) -> Result<Response, Response> {
-    match headers.get("x-api-key") {
+    match headers.get("X-Api-Key") {
         Some(header_value) if header_value == &state.api_key => Ok(next.run(req).await),
         Some(_) => Err((StatusCode::UNAUTHORIZED, "Invalid API Key").into_response()),
         None => Err((StatusCode::UNAUTHORIZED, "Missing API Key").into_response()),
