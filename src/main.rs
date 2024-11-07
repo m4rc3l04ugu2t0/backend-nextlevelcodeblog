@@ -313,7 +313,9 @@ async fn main() {
             ACCESS_CONTROL_ALLOW_ORIGIN,
             ACCESS_CONTROL_ALLOW_HEADERS,
             ACCESS_CONTROL_ALLOW_CREDENTIALS,
-        ]);
+            "X-Api-Key".parse().unwrap(),
+        ])
+        .allow_credentials(true);
 
     // build our application with a single route
     let app = Router::new()
