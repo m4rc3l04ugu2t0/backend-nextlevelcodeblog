@@ -6,7 +6,7 @@ use axum::http::header::{
 use axum::http::{HeaderValue, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
-use axum::routing::{delete, get, get_service, post, put};
+use axum::routing::{delete, get, post, put};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -256,7 +256,7 @@ async fn delete_post(
 }
 
 fn routes_static() -> Router {
-    Router::new().nest_service("/", get_service(ServeDir::new("./")))
+    Router::new().nest_service("/api/assets", ServeDir::new("src/assets"))
 }
 
 async fn require_api_key(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
