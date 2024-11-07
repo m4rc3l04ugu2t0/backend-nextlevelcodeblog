@@ -3,7 +3,7 @@ use axum::http::header::{
     ACCEPT, ACCESS_CONTROL_ALLOW_CREDENTIALS, ACCESS_CONTROL_ALLOW_HEADERS,
     ACCESS_CONTROL_ALLOW_ORIGIN, AUTHORIZATION, CONTENT_TYPE,
 };
-use axum::http::{HeaderMap, HeaderValue, Method, Request, StatusCode};
+use axum::http::{HeaderValue, Method, Request, StatusCode};
 use axum::middleware::{from_fn_with_state, Next};
 use axum::response::Response;
 use axum::routing::{delete, get, post, put};
@@ -255,17 +255,22 @@ async fn delete_post(
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to delete post").into_response(),
     }
 }
+async fn require_api_key(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
+    // Se o método for OPTIONS, pule a autenticação
+    if req.method() == axum::http::Method::OPTIONS {
+        return Ok(next.run(req).await);
+    }
 
-async fn require_api_key(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    req: Request<Body>,
-    next: Next,
-) -> Result<Response, Response> {
-    match headers.get("X-Api-Key") {
-        Some(header_value) if header_value == &state.api_key => Ok(next.run(req).await),
-        Some(_) => Err((StatusCode::UNAUTHORIZED, "Invalid API Key").into_response()),
-        None => Err((StatusCode::UNAUTHORIZED, "Missing API Key").into_response()),
+    // Caso contrário, continue verificando a API_KEY normalmente
+    let headers = req.headers();
+    if let Some(api_key) = headers.get("X-Api-Key") {
+        if api_key == "nextlevelcode" {
+            Ok(next.run(req).await)
+        } else {
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
     }
 }
 
