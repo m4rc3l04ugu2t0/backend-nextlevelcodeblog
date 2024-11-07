@@ -219,7 +219,6 @@ async fn get_images_by_post_name(
     Path(post_name): Path<String>,
 ) -> impl IntoResponse {
     // Busque o post pelo nome
-    println!("{}", post_name);
     match state.repository.find_post_by_name(&post_name).await {
         Ok(Some(post)) => Ok((StatusCode::OK, Json(post.images))), // Retorna as imagens
         Ok(None) => Err((StatusCode::NOT_FOUND, "Post not found")),
@@ -255,6 +254,7 @@ async fn delete_post(
         Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to delete post").into_response(),
     }
 }
+
 async fn require_api_key(req: Request<Body>, next: Next) -> Result<Response, StatusCode> {
     // Se o método for OPTIONS, pule a autenticação
     if req.method() == axum::http::Method::OPTIONS {
