@@ -167,9 +167,9 @@ impl PostgresRepository {
         Ok(())
     }
 
-    pub async fn get_images_by_post_id(&self, post_name: &str) -> Result<Vec<String>, sqlx::Error> {
-        let images = sqlx::query_scalar("SELECT url FROM images WHERE post_name = $1")
-            .bind(post_name)
+    pub async fn get_images_by_post_id(&self, post_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
+        let images = sqlx::query_scalar("SELECT url FROM images WHERE post_id = $1")
+            .bind(post_id)
             .fetch_all(&self.pool)
             .await?;
         Ok(images)
@@ -258,9 +258,9 @@ async fn add_images_to_post(
 
 async fn get_images_by_post_id(
     State(state): State<Arc<AppState>>,
-    Path(post_name): Path<String>,
+    Path(post_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    match state.repository.get_images_by_post_id(&post_name).await {
+    match state.repository.get_images_by_post_id(post_id).await {
         Ok(images) => Ok((StatusCode::OK, Json(images))),
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch images")),
     }
