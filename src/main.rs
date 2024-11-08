@@ -168,7 +168,7 @@ impl PostgresRepository {
     }
 
     pub async fn get_images_by_post_id(&self, post_name: &str) -> Result<Vec<String>, sqlx::Error> {
-        let images = sqlx::query_scalar("SELECT url FROM images WHERE name = $1")
+        let images = sqlx::query_scalar("SELECT url FROM images WHERE post_name = $1")
             .bind(post_name)
             .fetch_all(&self.pool)
             .await?;
