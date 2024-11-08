@@ -34,7 +34,6 @@ pub struct Post {
     pub name: String,
     pub title: String,
     pub description: String,
-    pub images: Vec<String>, // Um array de URLs de imagens
 }
 
 #[derive(Clone, Deserialize, sqlx::FromRow)]
@@ -42,7 +41,18 @@ pub struct NewPost {
     pub name: String,
     pub title: String,
     pub description: String,
-    pub images: Vec<String>, // Um array de URLs de imagens
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+pub struct Video {
+    pub id: Uuid,
+    pub post_id: Uuid,
+    pub url: String,
+}
+
+#[derive(Deserialize)]
+pub struct NewVideoRequest {
+    pub url: String,
 }
 
 #[derive(Deserialize)]
@@ -74,7 +84,7 @@ impl PostgresRepository {
 
     // Função para buscar um post pelo ID
     pub async fn find_post(&self, id: Uuid) -> Result<Option<Post>, sqlx::Error> {
-        sqlx::query_as("SELECT id, name, title, description, images FROM posts WHERE id = $1")
+        sqlx::query_as("SELECT id, name, title, description FROM posts WHERE id = $1")
             .bind(id)
             .fetch_optional(&self.pool)
             .await
@@ -82,51 +92,82 @@ impl PostgresRepository {
 
     // Função para listar todos os posts
     pub async fn list_posts(&self) -> Result<Vec<Post>, sqlx::Error> {
-        sqlx::query_as("SELECT id, name, title, description, images FROM posts")
+        sqlx::query_as("SELECT id, name, title, description FROM posts")
             .fetch_all(&self.pool)
             .await
     }
 
     pub async fn create_post(&self, new_post: NewPost) -> Result<Post, sqlx::Error> {
         sqlx::query_as(
-            "INSERT INTO posts (id, name, title, description, images)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, name, title, description, images",
+            "INSERT INTO posts (id, name, title, description)
+         VALUES ($1, $2, $3, $4)
+         RETURNING id, name, title, description",
         )
         .bind(Uuid::now_v7())
         .bind(new_post.name)
         .bind(new_post.description)
         .bind(new_post.title)
-        .bind(new_post.images)
         .fetch_one(&self.pool)
         .await
     }
 
-    // Função para adicionar imagens a um post
-    pub async fn add_images(
-        &self,
-        post_name: &str,
-        new_images: Vec<String>,
-    ) -> Result<Post, sqlx::Error> {
-        // Busca o post pelo nome
-        let mut post: Post = sqlx::query_as(
-            "SELECT id, name, title, description, images FROM posts WHERE name = $1",
+    pub async fn add_video(&self, post_id: Uuid, video_url: String) -> Result<Video, sqlx::Error> {
+        sqlx::query_as(
+            "INSERT INTO videos (id, post_id, url)
+             VALUES ($1, $2, $3)
+             RETURNING id, post_id, url",
         )
-        .bind(post_name)
+        .bind(Uuid::now_v7())
+        .bind(post_id)
+        .bind(video_url)
         .fetch_one(&self.pool)
-        .await?;
+        .await
+    }
 
-        // Adiciona as novas imagens ao vetor existente
-        post.images.extend(new_images);
+    pub async fn list_videos(&self, post_id: Uuid) -> Result<Vec<Video>, sqlx::Error> {
+        sqlx::query_as("SELECT id, post_id, url FROM videos WHERE post_id = $1")
+            .bind(post_id)
+            .fetch_all(&self.pool)
+            .await
+    }
 
-        // Atualiza o banco de dados com as novas imagens
-        sqlx::query("UPDATE posts SET images = $1 WHERE name = $2")
-            .bind(&post.images)
-            .bind(post_name)
-            .execute(&self.pool)
+    pub async fn add_videos(&self, post_id: Uuid, videos: Vec<String>) -> Result<(), sqlx::Error> {
+        for video in videos {
+            sqlx::query("INSERT INTO videos (post_id, url) VALUES ($1, $2)")
+                .bind(post_id)
+                .bind(video)
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(())
+    }
+
+    pub async fn get_videos_by_post_id(&self, post_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
+        let videos = sqlx::query_scalar("SELECT url FROM videos WHERE post_id = $1")
+            .bind(post_id)
+            .fetch_all(&self.pool)
             .await?;
+        Ok(videos)
+    }
 
-        Ok(post)
+    // Função para adicionar imagens a um post
+    pub async fn add_images(&self, post_id: Uuid, images: Vec<String>) -> Result<(), sqlx::Error> {
+        for image in images {
+            sqlx::query("INSERT INTO images (post_id, url) VALUES ($1, $2)")
+                .bind(post_id)
+                .bind(image)
+                .execute(&self.pool)
+                .await?;
+        }
+        Ok(())
+    }
+
+    pub async fn get_images_by_post_id(&self, post_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
+        let images = sqlx::query_scalar("SELECT url FROM images WHERE post_id = $1")
+            .bind(post_id)
+            .fetch_all(&self.pool)
+            .await?;
+        Ok(images)
     }
 
     pub async fn find_post_by_name(&self, name: &str) -> Result<Option<Post>, sqlx::Error> {
@@ -169,7 +210,7 @@ async fn get_post_by_id(
     Path(post_id): Path<Uuid>,
 ) -> impl IntoResponse {
     match state.repository.find_post(post_id).await {
-        Ok(Some(post)) => Ok(Json(post)),
+        Ok(Some(post)) => Ok((StatusCode::OK, Json(post))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, "Post not found")),
         Err(_) => Err((
             axum::http::StatusCode::INTERNAL_SERVER_ERROR,
@@ -201,28 +242,43 @@ async fn create_post(
 
 async fn add_images_to_post(
     State(state): State<Arc<AppState>>,
-    Path(post_name): Path<String>,
-    Json(add_images_request): Json<AddImagesRequest>,
+    Path(post_id): Path<Uuid>,
+    Json(images): Json<Vec<String>>,
 ) -> impl IntoResponse {
-    match state
-        .repository
-        .add_images(&post_name, add_images_request.images)
-        .await
-    {
-        Ok(post) => Ok((StatusCode::OK, Json(post))),
-        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to add images")),
+    match state.repository.add_images(post_id, images).await {
+        Ok(_) => (StatusCode::OK, "Images added successfully").into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to add images").into_response(),
     }
 }
 
-async fn get_images_by_post_name(
+async fn get_images_by_post_id(
     State(state): State<Arc<AppState>>,
-    Path(post_name): Path<String>,
+    Path(post_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    // Busque o post pelo nome
-    match state.repository.find_post_by_name(&post_name).await {
-        Ok(Some(post)) => Ok((StatusCode::OK, Json(post.images))), // Retorna as imagens
-        Ok(None) => Err((StatusCode::NOT_FOUND, "Post not found")),
-        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Database error")),
+    match state.repository.get_images_by_post_id(post_id).await {
+        Ok(images) => Ok((StatusCode::OK, Json(images))),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch images")),
+    }
+}
+
+async fn add_videos_to_post(
+    State(state): State<Arc<AppState>>,
+    Path(post_id): Path<Uuid>,
+    Json(videos): Json<Vec<String>>,
+) -> impl IntoResponse {
+    match state.repository.add_videos(post_id, videos).await {
+        Ok(_) => (StatusCode::OK, "Videos added successfully").into_response(),
+        Err(_) => (StatusCode::INTERNAL_SERVER_ERROR, "Failed to add videos").into_response(),
+    }
+}
+
+async fn get_videos_by_post_id(
+    State(state): State<Arc<AppState>>,
+    Path(post_id): Path<Uuid>,
+) -> impl IntoResponse {
+    match state.repository.get_videos_by_post_id(post_id).await {
+        Ok(videos) => Ok((StatusCode::OK, Json(videos))),
+        Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch videos")),
     }
 }
 
@@ -327,9 +383,14 @@ async fn main() {
         .route("/api/posts", post(create_post))
         .route("/api/post/:id", get(get_post_by_id))
         .route("/api/posts/:name/images", post(add_images_to_post))
-        .route("/api/post/:name/images", get(get_images_by_post_name)) // Nova rota
+        .route("/api/post/:name/images", get(get_images_by_post_id)) // Nova rota
         .route("/api/posts/update/:id", put(update_post_fields))
         .route("/api/delete/:name", delete(delete_post))
+        .route("/posts", get(list_posts).post(create_post)) // Rota para listar e criar posts
+        .route("/posts/:post_id/images", post(add_images_to_post)) // Adicionar imagens a um post
+        .route("/posts/:post_id/images", get(get_images_by_post_id)) // Obter imagens de um post
+        .route("/posts/:post_id/videos", post(add_videos_to_post)) // Adicionar vídeos a um post
+        .route("/posts/:post_id/videos", get(get_videos_by_post_id)) // Obter vídeos de um post
         .fallback_service(routes_static())
         .with_state(app_state.clone())
         .layer(cors)
