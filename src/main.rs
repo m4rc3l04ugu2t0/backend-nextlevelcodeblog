@@ -34,6 +34,7 @@ pub struct Post {
     pub name: String,
     pub title: String,
     pub description: String,
+    pub cover_image: String,
 }
 
 #[derive(Clone, Deserialize, sqlx::FromRow)]
@@ -41,6 +42,7 @@ pub struct NewPost {
     pub name: String,
     pub title: String,
     pub description: String,
+    pub cover_image: String,
 }
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -84,28 +86,31 @@ impl PostgresRepository {
 
     // Função para buscar um post pelo ID
     pub async fn find_post(&self, post_name: &str) -> Result<Option<Post>, sqlx::Error> {
-        sqlx::query_as("SELECT id, name, title, description FROM posts WHERE name = $1")
-            .bind(post_name)
-            .fetch_optional(&self.pool)
-            .await
+        sqlx::query_as(
+            "SELECT id, name, title, description, cover_image FROM posts WHERE name = $1",
+        )
+        .bind(post_name)
+        .fetch_optional(&self.pool)
+        .await
     }
 
     // Função para listar todos os posts
     pub async fn list_posts(&self) -> Result<Vec<Post>, sqlx::Error> {
-        sqlx::query_as("SELECT id, name, title, description FROM posts")
+        sqlx::query_as("SELECT id, name, title, description, cover_image FROM posts")
             .fetch_all(&self.pool)
             .await
     }
 
     pub async fn create_post(&self, new_post: NewPost) -> Result<Post, sqlx::Error> {
         sqlx::query_as(
-            "INSERT INTO posts (id, name, title, description)
+            "INSERT INTO posts (id, name, title, description, cover_image)
          VALUES ($1, $2, $3, $4)
          RETURNING id, name, title, description",
         )
         .bind(Uuid::now_v7())
         .bind(new_post.name)
         .bind(new_post.description)
+        .bind(new_post.cover_image)
         .bind(new_post.title)
         .fetch_one(&self.pool)
         .await
