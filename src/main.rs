@@ -167,9 +167,9 @@ impl PostgresRepository {
         Ok(())
     }
 
-    pub async fn get_images_by_post_id(&self, post_id: Uuid) -> Result<Vec<String>, sqlx::Error> {
-        let images = sqlx::query_scalar("SELECT url FROM images WHERE post_id = $1")
-            .bind(post_id)
+    pub async fn get_images_by_post_id(&self, post_name: &str) -> Result<Vec<String>, sqlx::Error> {
+        let images = sqlx::query_scalar("SELECT url FROM images WHERE name = $1")
+            .bind(post_name)
             .fetch_all(&self.pool)
             .await?;
         Ok(images)
@@ -258,9 +258,9 @@ async fn add_images_to_post(
 
 async fn get_images_by_post_id(
     State(state): State<Arc<AppState>>,
-    Path(post_id): Path<Uuid>,
+    Path(post_name): Path<String>,
 ) -> impl IntoResponse {
-    match state.repository.get_images_by_post_id(post_id).await {
+    match state.repository.get_images_by_post_id(&post_name).await {
         Ok(images) => Ok((StatusCode::OK, Json(images))),
         Err(_) => Err((StatusCode::INTERNAL_SERVER_ERROR, "Failed to fetch images")),
     }
@@ -393,7 +393,6 @@ async fn main() {
         .route("/api/delete/:name", delete(delete_post))
         .route("/posts", get(list_posts).post(create_post)) // Rota para listar e criar posts
         .route("/posts/:post_id/images", post(add_images_to_post)) // Adicionar imagens a um post
-        .route("/posts/:post_id/images", get(get_images_by_post_id)) // Obter imagens de um post
         .route("/posts/:post_id/videos", post(add_videos_to_post)) // Adicionar vídeos a um post
         .route("/posts/:post_id/videos", get(get_videos_by_post_id)) // Obter vídeos de um post
         .with_state(app_state.clone())
