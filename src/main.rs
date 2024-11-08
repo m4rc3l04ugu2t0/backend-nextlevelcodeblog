@@ -83,9 +83,9 @@ impl PostgresRepository {
     }
 
     // Função para buscar um post pelo ID
-    pub async fn find_post(&self, id: Uuid) -> Result<Option<Post>, sqlx::Error> {
-        sqlx::query_as("SELECT id, name, title, description FROM posts WHERE id = $1")
-            .bind(id)
+    pub async fn find_post(&self, post_name: &str) -> Result<Option<Post>, sqlx::Error> {
+        sqlx::query_as("SELECT id, name, title, description FROM posts WHERE name = $1")
+            .bind(post_name)
             .fetch_optional(&self.pool)
             .await
     }
@@ -205,11 +205,11 @@ impl PostgresRepository {
 }
 
 // Handler para buscar um post pelo ID
-async fn get_post_by_id(
+async fn get_post_by_name(
     State(state): State<Arc<AppState>>,
-    Path(post_id): Path<Uuid>,
+    Path(post_name): Path<String>,
 ) -> impl IntoResponse {
-    match state.repository.find_post(post_id).await {
+    match state.repository.find_post(&post_name).await {
         Ok(Some(post)) => Ok((StatusCode::OK, Json(post))),
         Ok(None) => Err((axum::http::StatusCode::NOT_FOUND, "Post not found")),
         Err(_) => Err((
@@ -381,7 +381,7 @@ async fn main() {
     let app = Router::new()
         .route("/api/posts", get(list_posts))
         .route("/api/posts", post(create_post))
-        .route("/api/post/:id", get(get_post_by_id))
+        .route("/api/post/:name", get(get_post_by_name))
         .route("/api/posts/:name/images", post(add_images_to_post))
         .route("/api/post/:name/images", get(get_images_by_post_id)) // Nova rota
         .route("/api/posts/update/:id", put(update_post_fields))
