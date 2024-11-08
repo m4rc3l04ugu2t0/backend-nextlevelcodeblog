@@ -396,10 +396,10 @@ async fn main() {
         .route("/posts/:post_id/images", get(get_images_by_post_id)) // Obter imagens de um post
         .route("/posts/:post_id/videos", post(add_videos_to_post)) // Adicionar vídeos a um post
         .route("/posts/:post_id/videos", get(get_videos_by_post_id)) // Obter vídeos de um post
-        .fallback_service(routes_static())
         .with_state(app_state.clone())
         .layer(cors)
-        .layer(from_fn_with_state(app_state, require_api_key));
+        .layer(from_fn_with_state(app_state, require_api_key))
+        .fallback_service(routes_static());
 
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
     axum_server::bind(addr)
