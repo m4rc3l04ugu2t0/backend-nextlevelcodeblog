@@ -386,12 +386,12 @@ async fn main() {
     let app = Router::new()
         .route("/api/posts", get(list_posts).post(create_post)) // Rota para listar e criar posts
         .route("/api/post/:name", get(get_post_by_name))
-        .route("/posts/:post_id/images", post(add_images_to_post)) // Adicionar imagens a um post
+        .route("/api/posts/:post_id/images", post(add_images_to_post)) // Adicionar imagens a um post
         .route("/api/post/:name/images", get(get_images_by_post_id)) // Nova rota
         .route("/api/post/update/:id", put(update_post_fields))
         .route("/api/delete/:name", delete(delete_post))
-        .route("/post/:post_id/videos", post(add_videos_to_post)) // Adicionar vídeos a um post
-        .route("/post/:post_id/videos", get(get_videos_by_post_id)) // Obter vídeos de um post
+        .route("/api/post/:post_id/videos", post(add_videos_to_post)) // Adicionar vídeos a um post
+        .route("/api/post/:post_id/videos", get(get_videos_by_post_id)) // Obter vídeos de um post
         .with_state(app_state.clone())
         .layer(cors)
         .layer(from_fn_with_state(app_state, require_api_key))
