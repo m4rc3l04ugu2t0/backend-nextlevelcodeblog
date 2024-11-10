@@ -104,8 +104,8 @@ impl PostgresRepository {
     pub async fn create_post(&self, new_post: NewPost) -> Result<Post, sqlx::Error> {
         sqlx::query_as(
             "INSERT INTO posts (id, name, title, description, cover_image)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, name, title, description",
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, name, title, description, cover_image",
         )
         .bind(Uuid::now_v7())
         .bind(new_post.name)
