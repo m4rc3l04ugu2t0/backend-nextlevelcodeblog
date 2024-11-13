@@ -109,9 +109,9 @@ impl PostgresRepository {
         )
         .bind(Uuid::now_v7())
         .bind(new_post.name)
+        .bind(new_post.title)
         .bind(new_post.description)
         .bind(new_post.cover_image)
-        .bind(new_post.title)
         .fetch_one(&self.pool)
         .await
     }
