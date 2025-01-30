@@ -1,0 +1,2 @@
+[env]
+RUST_LOG="backend_nextlevelcodeblog=debug,tower_http=debug"
