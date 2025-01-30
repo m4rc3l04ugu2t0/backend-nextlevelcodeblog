@@ -116,6 +116,60 @@ impl AuthService {
         self.generate_token(user.id, self.jwt_expiration)
     }
 
+    pub async fn forgot_password(&self, email: String) -> Result<()> {
+        let user = self
+            .user_repo
+            .get_user(None, None, Some(&email), None)
+            .await?;
+
+        let user = user.ok_or(Error::NotFound)?;
+
+        let verfication_token = Uuid::now_v7().to_string();
+        let expires_at = Utc::now() + Duration::minutes(30);
+
+        let user_id =
+            Uuid::parse_str(&user.id.to_string()).map_err(|_| Error::InternalServerError)?;
+
+        self.user_repo
+            .add_verifed_token(user_id, expires_at, &verfication_token)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn reset_password(&self, token: String, new_password: String) -> Result<()> {
+        let user = self
+            .user_repo
+            .get_user(None, None, None, Some(&token))
+            .await?;
+
+        let user = user.ok_or(Error::NotFound)?;
+
+        if let Some(expires_at) = user.token_expires_at {
+            if expires_at < Utc::now() {
+                return Err(Error::BadRequest("Token expired".to_string()));
+            }
+        }
+
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let password_hash = argon2
+            .hash_password(new_password.as_bytes(), &salt)
+            .map_err(|_| Error::Unauthorized)?
+            .to_string();
+
+        let user_id =
+            Uuid::parse_str(&user.id.to_string()).map_err(|_| Error::InternalServerError)?;
+
+        self.user_repo
+            .update_password(user_id, &password_hash)
+            .await?;
+
+        self.user_repo.verifed_token(token).await?;
+
+        Ok(())
+    }
+
     pub fn decode_token<T: Into<String>>(&self, token: T) -> Result<Uuid> {
         let decode = decode::<Claims>(
             &token.into(),

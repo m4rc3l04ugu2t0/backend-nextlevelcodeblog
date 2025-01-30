@@ -11,7 +11,10 @@ use crate::{
     models::{
         query::VerifyEmailQueryDto,
         response::Response,
-        users::{LoginUserDto, RegisterUserDto, UserLoginResponseDto},
+        users::{
+            ForgotPasswordRequestDto, LoginUserDto, RegisterUserDto, ResetPasswordRequestDto,
+            UserLoginResponseDto,
+        },
     },
     AppState, Error, Result,
 };
@@ -112,10 +115,39 @@ pub async fn verify_email(
     Ok(response)
 }
 
-pub async fn forgot_password() {
-    // Send a password reset email
+pub async fn forgot_password(
+    Extension(app_state): Extension<AppState>,
+    Json(email): Json<ForgotPasswordRequestDto>,
+) -> Result<impl IntoResponse> {
+    email
+        .validate()
+        .map_err(|e| Error::BadRequest(e.to_string()))?;
+    app_state.auth_service.forgot_password(email.email).await?;
+
+    let response = Response {
+        message: "Password reset link has been sent to your email.".to_string(),
+        status: "success",
+    };
+
+    Ok(Json(response))
 }
 
-pub async fn reset_password() {
-    // Reset a user's password
+pub async fn reset_password(
+    Extension(app_state): Extension<AppState>,
+    Json(body): Json<ResetPasswordRequestDto>,
+) -> Result<impl IntoResponse> {
+    body.validate()
+        .map_err(|e| Error::BadRequest(e.to_string()))?;
+
+    app_state
+        .auth_service
+        .reset_password(body.token, body.new_password)
+        .await?;
+
+    let response = Response {
+        message: "Password has been successfully reset.".to_string(),
+        status: "success",
+    };
+
+    Ok(Json(response))
 }

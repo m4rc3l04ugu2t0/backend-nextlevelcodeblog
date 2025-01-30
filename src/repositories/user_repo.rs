@@ -27,6 +27,13 @@ pub trait UserRepository: Send + Sync {
         email: Option<&str>,
         token: Option<&str>,
     ) -> Result<Option<User>>;
+    async fn add_verifed_token(
+        &self,
+        user_id: Uuid,
+        token_expires_at: DateTime<Utc>,
+        token: &str,
+    ) -> Result<()>;
+    async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()>;
 }
 
 #[derive(Clone)]
@@ -140,6 +147,45 @@ impl UserRepository for PostgresUserRepo {
             WHERE verification_token = $1
             "#,
             &token
+        )
+        .execute(&self.pool)
+        .await;
+
+        Ok(())
+    }
+
+    async fn add_verifed_token(
+        &self,
+        user_id: Uuid,
+        token_expires_at: DateTime<Utc>,
+        token: &str,
+    ) -> Result<()> {
+        let _ = sqlx::query!(
+            r#"
+            UPDATE users
+            SET verification_token = $1,
+                token_expires_at = $2
+            WHERE id = $3
+            "#,
+            token,
+            token_expires_at,
+            user_id
+        )
+        .execute(&self.pool)
+        .await;
+
+        Ok(())
+    }
+
+    async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()> {
+        let _ = sqlx::query!(
+            r#"
+            UPDATE users
+            SET password = $1
+            WHERE id = $2
+            "#,
+            password,
+            user_id
         )
         .execute(&self.pool)
         .await;
