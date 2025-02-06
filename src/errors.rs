@@ -16,6 +16,7 @@ pub enum Error {
     BadRequest(String),
     DatabaseError(sqlx::Error),
     InvalidHashFormat(argon2::password_hash::Error),
+    Forbidden,
 }
 
 impl IntoResponse for Error {
@@ -31,6 +32,7 @@ impl IntoResponse for Error {
             Self::InvalidHashFormat(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Invalid hash format")
             }
+            Self::Forbidden => (StatusCode::FORBIDDEN, "Forbidden"),
         };
 
         let body = Json(json!({ "error": message }));

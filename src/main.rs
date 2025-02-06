@@ -1,3 +1,4 @@
+#![allow(unused)]
 use std::sync::Arc;
 
 use axum::{
@@ -22,6 +23,8 @@ pub use self::errors::{Error, Result};
 mod config;
 mod errors;
 mod handlers;
+mod mail;
+mod middleware;
 mod models;
 mod repositories;
 mod routes;
@@ -74,12 +77,7 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = Router::new()
-        .nest("/api", create_routes())
-        .layer(cors)
-        .layer(Extension(app_state));
-    // create_routes(Arc::new(app_state.clone())).layer(cors.clone());
-
+    let app = create_routes(Arc::new(app_state)).layer(cors);
     // let app = Router::new()
     //     .merge(auth_routes())
     //     .layer(CookieManagerLayer::new())

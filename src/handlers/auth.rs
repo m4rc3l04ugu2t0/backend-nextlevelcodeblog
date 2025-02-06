@@ -1,22 +1,25 @@
+use std::sync::Arc;
+
 use axum::{
     extract::Query,
     http::{header, HeaderMap, StatusCode},
     routing::{get, post},
     Extension, Json, Router,
 };
+use chrono::Utc;
 use tower_cookies::Cookie;
+use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    models::{
+    mail::mails::send_verification_email, models::{
         query::VerifyEmailQueryDto,
         response::Response,
         users::{
             ForgotPasswordRequestDto, LoginUserDto, RegisterUserDto, ResetPasswordRequestDto,
             UserLoginResponseDto,
         },
-    },
-    AppState, Error, Result,
+    }, AppState, Error, Result
 };
 
 use axum::response::IntoResponse;
@@ -31,16 +34,21 @@ pub fn auth_handler() -> Router {
 }
 
 pub async fn register(
-    Extension(app_state): Extension<AppState>,
+    Extension(app_state): Extension<Arc<AppState>>,
     Json(new_user): Json<RegisterUserDto>,
 ) -> Result<impl IntoResponse> {
     new_user
         .validate()
         .map_err(|e| Error::BadRequest(e.to_string()))?;
-    app_state
+    let user = app_state
         .auth_service
         .register(new_user.name, new_user.email, new_user.password)
         .await?;
+
+    let verification_token = Uuid::now_v7().to_string();
+    let expires_at = Utc::now() + chrono::Duration::hours(24);
+
+    let send_email_result = send_verification_email(&user.email, &user.password, &verification_token).await?;
 
     Ok((
         StatusCode::CREATED,
@@ -53,7 +61,7 @@ pub async fn register(
 }
 
 pub async fn login(
-    Extension(app_state): Extension<AppState>,
+    Extension(app_state): Extension<Arc<AppState>>,
     Json(user): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
     user.validate()
@@ -88,7 +96,7 @@ pub async fn login(
 
 pub async fn verify_email(
     Query(params): Query<VerifyEmailQueryDto>,
-    Extension(app_state): Extension<AppState>,
+    Extension(app_state): Extension<Arc<AppState>>,
 ) -> Result<impl IntoResponse> {
     params
         .validate()
@@ -116,7 +124,7 @@ pub async fn verify_email(
 }
 
 pub async fn forgot_password(
-    Extension(app_state): Extension<AppState>,
+    Extension(app_state): Extension<Arc<AppState>>,
     Json(email): Json<ForgotPasswordRequestDto>,
 ) -> Result<impl IntoResponse> {
     email
@@ -133,7 +141,7 @@ pub async fn forgot_password(
 }
 
 pub async fn reset_password(
-    Extension(app_state): Extension<AppState>,
+    Extension(app_state): Extension<Arc<AppState>>,
     Json(body): Json<ResetPasswordRequestDto>,
 ) -> Result<impl IntoResponse> {
     body.validate()

@@ -170,6 +170,18 @@ impl AuthService {
         Ok(())
     }
 
+    pub async fn get_user(
+        &self,
+        user_id: Option<Uuid>,
+        name: Option<&str>,
+        email: Option<&str>,
+        token: Option<&str>,
+    ) -> Result<User> {
+        let user = self.user_repo.get_user(user_id, name, email, token).await?;
+        let user = user.ok_or(Error::NotFound)?;
+        Ok(user)
+    }
+
     pub fn decode_token<T: Into<String>>(&self, token: T) -> Result<Uuid> {
         let decode = decode::<Claims>(
             &token.into(),
