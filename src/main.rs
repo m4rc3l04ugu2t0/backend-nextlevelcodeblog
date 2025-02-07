@@ -4,17 +4,18 @@ use std::sync::Arc;
 use axum::{
     http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-        HeaderValue, Method,
+        HeaderValue, Method, StatusCode,
     },
+    routing::get_service,
     Extension, Router,
 };
 use config::Config;
 use dotenv::dotenv;
-use repositories::user_repo::PostgresUserRepo;
+use repositories::PostgresRepo;
 use routes::create_routes;
 use services::auth::AuthService;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, services::ServeDir};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -63,7 +64,7 @@ async fn main() {
         }
     };
 
-    let db_blog = Arc::new(PostgresUserRepo::new(pool.clone()));
+    let db_blog = PostgresRepo::new(pool.clone());
 
     let cors = CorsLayer::new()
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
@@ -77,14 +78,8 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state)).layer(cors);
-    // let app = Router::new()
-    //     .merge(auth_routes())
-    //     .layer(CookieManagerLayer::new())
-    //     .fallback_service(
-    //         get_service(ServeDir::new("/assets"))
-    //             .handle_error(|_| async { StatusCode::INTERNAL_SERVER_ERROR }),
-    //     );
+    let app = create_routes(Arc::new(app_state))
+        .layer(cors);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     info!("{} - {:?}", "LISTENING", listener.local_addr());

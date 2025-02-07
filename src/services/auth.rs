@@ -9,11 +9,18 @@ use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{models::users::User, repositories::user_repo::UserRepository, Error, Result};
+use crate::{
+    models::{
+        posts::{CreatePostDto, Post},
+        users::User,
+    },
+    repositories::{posts_repo::PostsRepository, user_repo::UserRepository, PostgresRepo},
+    Error, Result,
+};
 
 #[derive(Clone)]
 pub struct AuthService {
-    user_repo: Arc<dyn UserRepository>,
+    user_repo: PostgresRepo,
     jwt_secret: String,
     jwt_expiration: i64,
 }
@@ -26,11 +33,7 @@ struct Claims {
 }
 
 impl AuthService {
-    pub fn new(
-        user_repo: Arc<dyn UserRepository>,
-        jwt_secret: String,
-        jwt_expiration: i64,
-    ) -> Self {
+    pub fn new(user_repo: PostgresRepo, jwt_secret: String, jwt_expiration: i64) -> Self {
         Self {
             user_repo,
             jwt_secret,
@@ -191,5 +194,51 @@ impl AuthService {
         .map_err(|_| Error::NotFound)?;
 
         Ok(Uuid::parse_str(&decode.claims.sub).map_err(|_| Error::Unauthorized)?)
+    }
+
+    pub async fn get_posts(&self) -> Result<Vec<Post>> {
+        let posts = self.user_repo.get_posts().await?;
+        Ok(posts)
+    }
+
+    pub async fn create_post(
+        &self,
+        user_id: &str,
+        title: &str,
+        description: &str,
+        cover_image: &str,
+    ) -> Result<Post> {
+        let new_post = self
+            .user_repo
+            .create_post(user_id, title, description, cover_image)
+            .await?;
+
+        Ok(new_post)
+    }
+
+    pub async fn update_post(
+        &self,
+        user_id: &str,
+        title: &str,
+        description: &str,
+        cover_image: &str,
+    ) -> Result<Post> {
+        let updated_post = self
+            .user_repo
+            .update_post(
+                &user_id,
+                Some(&title),
+                Some(&description),
+                Some(&cover_image),
+            )
+            .await?;
+
+        Ok(updated_post)
+    }
+
+    pub async fn delete_post(&self, post_id: &str) -> Result<()> {
+        let deleted_post = self.user_repo.delete_post(&post_id).await?;
+
+        Ok(())
     }
 }

@@ -12,14 +12,16 @@ use uuid::Uuid;
 use validator::Validate;
 
 use crate::{
-    mail::mails::send_verification_email, models::{
+    mail::mails::send_verification_email,
+    models::{
         query::VerifyEmailQueryDto,
         response::Response,
         users::{
             ForgotPasswordRequestDto, LoginUserDto, RegisterUserDto, ResetPasswordRequestDto,
             UserLoginResponseDto,
         },
-    }, AppState, Error, Result
+    },
+    AppState, Error, Result,
 };
 
 use axum::response::IntoResponse;
@@ -48,7 +50,8 @@ pub async fn register(
     let verification_token = Uuid::now_v7().to_string();
     let expires_at = Utc::now() + chrono::Duration::hours(24);
 
-    let send_email_result = send_verification_email(&user.email, &user.password, &verification_token).await?;
+    let send_email_result =
+        send_verification_email(&user.email, &user.password, &verification_token).await?;
 
     Ok((
         StatusCode::CREATED,

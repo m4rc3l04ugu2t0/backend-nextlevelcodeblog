@@ -8,6 +8,8 @@ use crate::{
     Result,
 };
 
+use super::PostgresRepo;
+
 #[async_trait]
 pub trait UserRepository: Send + Sync {
     async fn create_user(
@@ -36,19 +38,8 @@ pub trait UserRepository: Send + Sync {
     async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()>;
 }
 
-#[derive(Clone)]
-pub struct PostgresUserRepo {
-    pool: PgPool,
-}
-
-impl PostgresUserRepo {
-    pub fn new(pool: PgPool) -> Self {
-        Self { pool }
-    }
-}
-
 #[async_trait]
-impl UserRepository for PostgresUserRepo {
+impl UserRepository for PostgresRepo {
     async fn get_user(
         &self,
         user_id: Option<Uuid>,

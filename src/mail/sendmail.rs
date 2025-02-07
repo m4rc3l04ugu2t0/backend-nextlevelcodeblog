@@ -1,5 +1,9 @@
 use crate::Result;
-use lettre::{message::{header, SinglePart}, transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
+use lettre::{
+    message::{header, SinglePart},
+    transport::smtp::authentication::Credentials,
+    Message, SmtpTransport, Transport,
+};
 use std::{env::var, fs::read_to_string};
 
 pub async fn send_email(
@@ -27,11 +31,16 @@ pub async fn send_email(
         .to(to.parse().unwrap())
         .subject(subject)
         .header(header::ContentType::TEXT_HTML)
-        .singlepart(SinglePart::builder().header(header::ContentType::TEXT_HTML).body(html_template))
+        .singlepart(
+            SinglePart::builder()
+                .header(header::ContentType::TEXT_HTML)
+                .body(html_template),
+        )
         .unwrap();
 
-         let creds = Credentials::new(smtp_username.clone(), smtp_password.clone());
-    let mailer = SmtpTransport::starttls_relay(&smtp_server).unwrap()
+    let creds = Credentials::new(smtp_username.clone(), smtp_password.clone());
+    let mailer = SmtpTransport::starttls_relay(&smtp_server)
+        .unwrap()
         .credentials(creds)
         .port(smtp_port)
         .build();
