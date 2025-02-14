@@ -29,14 +29,14 @@ pub async fn send_welcome_email(to_email: &str, username: &str) -> Result<()> {
 
 pub async fn send_forgot_password_email(
     to_email: &str,
-    rest_link: &str,
+    reset_link: &str,
     username: &str,
 ) -> Result<()> {
     let subject = "Rest your Password";
     let template_path = "src/mail/templates/RestPassword-email.html";
     let placeholders = vec![
         ("{{username}}".to_string(), username.to_string()),
-        ("{{rest_link}}".to_string(), rest_link.to_string()),
+        ("{{reset_link}}".to_string(), reset_link.to_string()),
     ];
 
     send_email(to_email, subject, template_path, &placeholders).await

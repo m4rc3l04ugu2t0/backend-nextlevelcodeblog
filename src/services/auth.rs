@@ -7,12 +7,16 @@ use argon2::{
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
+    errors::ValidationResponse,
+    mail::mails::send_forgot_password_email,
     models::{
         posts::{CreatePostDto, Post},
-        users::User,
+        response::Response,
+        users::{FilterUserDto, NameUpdateDto, User, UserPasswordUpdateDto},
     },
     repositories::{posts_repo::PostsRepository, user_repo::UserRepository, PostgresRepo},
     Error, Result,
@@ -42,7 +46,12 @@ impl AuthService {
     }
 
     pub async fn register(&self, name: String, email: String, password: String) -> Result<User> {
-        if self.user_repo.find_by_email(&email).await?.is_some() {
+        if self
+            .user_repo
+            .get_user(None, None, Some(&email), None)
+            .await?
+            .is_some()
+        {
             return Err(Error::BadRequest("Email already exists".to_string()));
         }
 
@@ -70,16 +79,16 @@ impl AuthService {
     pub async fn login(&self, email: &str, password: &str) -> Result<String> {
         let user = self
             .user_repo
-            .find_by_email(email)
+            .get_user(None, None, Some(email), None)
             .await?
-            .ok_or(Error::Unauthorized)?;
+            .ok_or(Error::BadRequest("User not found, create an account!".to_string()))?;
 
         let argon2 = Argon2::default();
         let parsed_hash =
             PasswordHash::new(&user.password).map_err(|_| Error::InternalServerError)?;
         argon2
             .verify_password(password.as_bytes(), &parsed_hash)
-            .map_err(|_| Error::Unauthorized)?;
+            .map_err(|_| Error::BadRequest("Invalid password!".to_string()))?;
         self.generate_token(user.id, 60 * 60)
     }
 
@@ -107,7 +116,7 @@ impl AuthService {
             .get_user(None, None, None, Some(&token))
             .await?;
 
-        let user = user.ok_or(Error::NotFound)?;
+        let user = user.ok_or(Error::BadRequest("Invalidinvalid email".to_string()))?;
 
         if let Some(expires_at) = user.token_expires_at {
             if expires_at < Utc::now() {
@@ -125,17 +134,29 @@ impl AuthService {
             .get_user(None, None, Some(&email), None)
             .await?;
 
-        let user = user.ok_or(Error::NotFound)?;
 
-        let verfication_token = Uuid::now_v7().to_string();
+        let user = user.ok_or(Error::BadRequest("E-mail inválido!".to_string()))?;
+
+        let verification_token = Uuid::now_v7().to_string();
         let expires_at = Utc::now() + Duration::minutes(30);
 
         let user_id =
             Uuid::parse_str(&user.id.to_string()).map_err(|_| Error::InternalServerError)?;
 
         self.user_repo
-            .add_verifed_token(user_id, expires_at, &verfication_token)
+            .add_verifed_token(user_id, expires_at, &verification_token)
             .await?;
+
+        let reset_link = format!(
+            "http://localhost:3000/reset/reset-password?token={}",
+            &verification_token
+        );
+
+        let email_sent = send_forgot_password_email(&user.email, &reset_link, &user.name).await;
+
+        if let Err(e) = email_sent {
+            return Err(Error::InternalServerError);
+        }
 
         Ok(())
     }
@@ -146,7 +167,7 @@ impl AuthService {
             .get_user(None, None, None, Some(&token))
             .await?;
 
-        let user = user.ok_or(Error::NotFound)?;
+        let user = user.ok_or(Error::Unauthorized)?;
 
         if let Some(expires_at) = user.token_expires_at {
             if expires_at < Utc::now() {
@@ -158,7 +179,7 @@ impl AuthService {
         let argon2 = Argon2::default();
         let password_hash = argon2
             .hash_password(new_password.as_bytes(), &salt)
-            .map_err(|_| Error::Unauthorized)?
+            .map_err(|_| Error::InternalServerError)?
             .to_string();
 
         let user_id =
@@ -204,13 +225,14 @@ impl AuthService {
     pub async fn create_post(
         &self,
         user_id: &str,
+        name: &str,
         title: &str,
         description: &str,
         cover_image: &str,
     ) -> Result<Post> {
         let new_post = self
             .user_repo
-            .create_post(user_id, title, description, cover_image)
+            .create_post(user_id, name, title, description, cover_image)
             .await?;
 
         Ok(new_post)
@@ -218,19 +240,15 @@ impl AuthService {
 
     pub async fn update_post(
         &self,
-        user_id: &str,
-        title: &str,
-        description: &str,
-        cover_image: &str,
+        post_id: &str,
+        name: Option<&str>,
+        title: Option<&str>,
+        description: Option<&str>,
+        cover_image: Option<&str>,
     ) -> Result<Post> {
         let updated_post = self
             .user_repo
-            .update_post(
-                &user_id,
-                Some(&title),
-                Some(&description),
-                Some(&cover_image),
-            )
+            .update_post(&post_id, name, title, description, cover_image)
             .await?;
 
         Ok(updated_post)
@@ -239,6 +257,71 @@ impl AuthService {
     pub async fn delete_post(&self, post_id: &str) -> Result<()> {
         let deleted_post = self.user_repo.delete_post(&post_id).await?;
 
+        Ok(())
+    }
+
+    pub async fn delete_user(&self, user_id: &str) -> Result<()> {
+        let user_id = Uuid::parse_str(user_id).unwrap();
+
+        self.user_repo.delete_user(user_id).await?;
+        Ok(())
+    }
+
+    pub async fn update_username(
+        &self,
+        user: &User,
+        user_update: NameUpdateDto,
+    ) -> Result<FilterUserDto> {
+        let user_id = uuid::Uuid::parse_str(&user.id.to_string()).unwrap();
+
+        let argon2 = Argon2::default();
+        let parsed_hash =
+            PasswordHash::new(&user.password).map_err(|_| Error::InternalServerError)?;
+        argon2
+            .verify_password(user_update.password.as_bytes(), &parsed_hash)
+            .map_err(|_| Error::BadRequest("Invalid password!".to_string()))?;
+
+        let result = self
+            .user_repo
+            .update_username(user.id, &user_update.name)
+            .await?;
+
+        let filtered_user = FilterUserDto::filter_user(&result);
+
+        Ok(filtered_user)
+    }
+
+    pub async fn update_user_password(
+        &self,
+        user: &User,
+        user_update: UserPasswordUpdateDto,
+    ) -> Result<()> {
+        let user_id = uuid::Uuid::parse_str(&user.id.to_string()).unwrap();
+
+        let result = self
+            .user_repo
+            .get_user(Some(user_id), None, None, None)
+            .await?;
+
+        let user = result.ok_or(Error::BadRequest("Invalid password!".to_string()))?;
+
+        let argon2 = Argon2::default();
+        let parsed_hash =
+            PasswordHash::new(&user.password).map_err(|_| Error::InternalServerError)?;
+        argon2
+            .verify_password(user_update.old_password.as_bytes(), &parsed_hash)
+            .map_err(|_| Error::BadRequest("Invalid password!".to_string()))?;
+
+        let salt = SaltString::generate(&mut OsRng);
+        let argon2 = Argon2::default();
+        let hash_password = argon2
+            .hash_password(user_update.new_password.as_bytes(), &salt)
+            .map_err(|_| Error::Unauthorized)?
+            .to_string();
+
+        self.user_repo
+            .update_password(user_id, &hash_password)
+            .await?;
         Ok(())
     }
 }

@@ -1,7 +1,6 @@
-use axum::Json;
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Response {
     pub status: &'static str,
     pub message: String,

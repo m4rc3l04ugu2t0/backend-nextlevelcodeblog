@@ -8,6 +8,7 @@ use axum::{
 };
 use chrono::Utc;
 use tower_cookies::Cookie;
+use tracing::info;
 use uuid::Uuid;
 use validator::Validate;
 
@@ -39,9 +40,8 @@ pub async fn register(
     Extension(app_state): Extension<Arc<AppState>>,
     Json(new_user): Json<RegisterUserDto>,
 ) -> Result<impl IntoResponse> {
-    new_user
-        .validate()
-        .map_err(|e| Error::BadRequest(e.to_string()))?;
+    new_user.validate()?;
+
     let user = app_state
         .auth_service
         .register(new_user.name, new_user.email, new_user.password)
@@ -67,8 +67,8 @@ pub async fn login(
     Extension(app_state): Extension<Arc<AppState>>,
     Json(user): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
-    user.validate()
-        .map_err(|e| Error::BadRequest(e.to_string()))?;
+    user.validate()?;
+     info!("lssssssss");
 
     let token = app_state
         .auth_service
@@ -131,8 +131,8 @@ pub async fn forgot_password(
     Json(email): Json<ForgotPasswordRequestDto>,
 ) -> Result<impl IntoResponse> {
     email
-        .validate()
-        .map_err(|e| Error::BadRequest(e.to_string()))?;
+        .validate()?;
+
     app_state.auth_service.forgot_password(email.email).await?;
 
     let response = Response {

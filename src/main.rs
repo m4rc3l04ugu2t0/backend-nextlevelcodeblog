@@ -70,7 +70,7 @@ async fn main() {
         .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
-        .allow_methods([Method::GET, Method::POST, Method::PUT]);
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);
 
     let app_state = AppState {
         db_pool: pool,
@@ -78,10 +78,9 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state))
-        .layer(cors);
+    let app = create_routes(Arc::new(app_state)).layer(cors);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("[::]:8080").await.unwrap();
     info!("{} - {:?}", "LISTENING", listener.local_addr());
     axum::serve(listener, app).await.unwrap();
 }

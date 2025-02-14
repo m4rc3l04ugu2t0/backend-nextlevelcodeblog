@@ -122,6 +122,7 @@ pub struct UserResponseDto {
     pub status: String,
     pub data: UserData,
 }
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UserLoginResponseDto {
     pub status: String,
@@ -143,6 +144,7 @@ pub struct ResetPasswordRequestDto {
     pub token: String,
 
     #[validate(length(min = 6, message = "new password must be at least 6 characters"))]
+    #[serde(rename = "newPassword")]
     pub new_password: String,
 
     #[validate(
@@ -152,5 +154,40 @@ pub struct ResetPasswordRequestDto {
         ),
         must_match(other = "new_password", message = "new passwords do not match")
     )]
+    #[serde(rename = "confirmPassword")]
     pub new_password_confirm: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DeleteUser {
+    pub user_id: String,
+    pub password: String,
+}
+
+#[derive(Debug, Validate, Default, Clone, Serialize, Deserialize)]
+pub struct UserPasswordUpdateDto {
+    #[validate(length(min = 6, message = "new password must be at least 6 characters"))]
+    #[serde(rename = "newPassword")]
+    pub new_password: String,
+
+    #[validate(
+        length(
+            min = 6,
+            message = "new password confirm must be at least 6 characters"
+        ),
+        must_match(other = "new_password", message = "new passwords do not match")
+    )]
+    #[serde(rename = "newPasswordConfirm")]
+    pub new_password_confirm: String,
+
+    #[validate(length(min = 6, message = "Old password must be at least 6 characters"))]
+    #[serde(rename = "oldPassword")]
+    pub old_password: String,
+}
+#[derive(Validate, Debug, Default, Clone, Serialize, Deserialize)]
+pub struct NameUpdateDto {
+    #[validate(length(min = 1, message = "Name is required"))]
+    pub name: String,
+    #[validate(length(min = 1, message = "Password is required"))]
+    pub password: String,
 }

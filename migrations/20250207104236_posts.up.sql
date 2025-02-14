@@ -4,6 +4,7 @@
 CREATE TABLE posts (
     id UUID PRIMARY KEY, -- Garante um UUID automático se não for informado
     user_id UUID NOT NULL,                         -- Refere-se ao usuário que criou o post
+    name TEXT NOT NULL,
     title TEXT NOT NULL,
     description VARCHAR(255) NOT NULL,
     cover_image TEXT NOT NULL,

@@ -3,7 +3,7 @@ use serde_json::json;
 
 #[tokio::test]
 async fn quick_dev() -> Result<()> {
-    let hc = httpc_test::new_client("http://localhost:3000/api")?;
+    let hc = httpc_test::new_client("http://localhost:8080/api")?;
 
     hc.do_post(
         "/auth/register",
@@ -23,6 +23,19 @@ async fn quick_dev() -> Result<()> {
         json!({
           "email": "testee@gmal.com",
           "password": "123456",
+        }),
+    )
+    .await?
+    .print()
+    .await?;
+
+    hc.do_post(
+        "/posts/create_post",
+        json!({
+          "user_id": "0194e1f7-c369-7c31-9440-45654eabb899",
+          "title": "Bitcoin",
+          "description": "Let's create a cold wallet of Bitcoin",
+          "cover_image": "http://localhost:8080/api/images/SetUpBitcoinWallet/cover.webp",
         }),
     )
     .await?

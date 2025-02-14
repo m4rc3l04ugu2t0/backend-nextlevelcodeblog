@@ -4,7 +4,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    models::users::{User, UserRole},
+    models::users::{NameUpdateDto, User, UserRole},
     Result,
 };
 
@@ -20,7 +20,6 @@ pub trait UserRepository: Send + Sync {
         verification_token: String,
         token_expires_at: Option<DateTime<Utc>>,
     ) -> Result<User>;
-    async fn find_by_email(&self, email: &str) -> Result<Option<User>>;
     async fn verifed_token(&self, token_expires_at: String) -> Result<()>;
     async fn get_user(
         &self,
@@ -36,6 +35,8 @@ pub trait UserRepository: Send + Sync {
         token: &str,
     ) -> Result<()>;
     async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()>;
+    async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User>;
+    async fn delete_user(&self, user_id: Uuid) -> Result<()>;
 }
 
 #[async_trait]
@@ -111,22 +112,6 @@ impl UserRepository for PostgresRepo {
         Ok(user)
     }
 
-    async fn find_by_email(&self, email: &str) -> Result<Option<User>> {
-        let user = sqlx::query_as!(
-            User,
-            r#"
-            SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
-            FROM users
-            WHERE email = $1
-            "#,
-            email
-        )
-        .fetch_optional(&self.pool)
-        .await?;
-
-        Ok(user)
-    }
-
     async fn verifed_token(&self, token: String) -> Result<()> {
         let _ = sqlx::query!(
             r#"
@@ -168,18 +153,44 @@ impl UserRepository for PostgresRepo {
         Ok(())
     }
 
-    async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()> {
+    async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User> {
+        let user = sqlx::query_as!(
+            User,
+            r#"
+            UPDATE users
+            SET name = $1, updated_at = Now()
+            WHERE id = $2
+            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+            "#,
+            new_username,
+            user_id
+        )
+        .fetch_one(&self.pool)
+        .await?;
+
+        Ok(user)
+    }
+
+    async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()> {
         let _ = sqlx::query!(
             r#"
             UPDATE users
-            SET password = $1
+            SET password = $1, updated_at = Now()
             WHERE id = $2
             "#,
-            password,
+            new_password,
             user_id
         )
         .execute(&self.pool)
         .await;
+
+        Ok(())
+    }
+
+    async fn delete_user(&self, user_id: Uuid) -> Result<()> {
+        let _ = sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
+            .execute(&self.pool)
+            .await?;
 
         Ok(())
     }

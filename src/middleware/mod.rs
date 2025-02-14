@@ -25,6 +25,7 @@ pub struct JWTAuthMiddeware {
 }
 
 pub async fn auth(mut req: Request, next: Next) -> Result<impl IntoResponse> {
+    info!("ksksk");
     let app_state = req
         .extensions()
         .get::<Arc<AppState>>()
@@ -56,6 +57,7 @@ pub async fn auth(mut req: Request, next: Next) -> Result<impl IntoResponse> {
         .map_err(|_| Error::Unauthorized)?;
 
     let user_id = Uuid::parse_str(&token_details.to_string()).map_err(|_| Error::Unauthorized)?;
+    info!("user_id => {}", user_id);
 
     let user = app_state
         .auth_service

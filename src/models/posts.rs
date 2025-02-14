@@ -6,6 +6,7 @@ use uuid::Uuid;
 pub struct Post {
     pub id: Uuid,
     pub user_id: String,
+    pub name: String,
     pub title: String,
     pub description: String,
     pub cover_image: String,
@@ -14,8 +15,17 @@ pub struct Post {
 
 #[derive(Debug, Deserialize)]
 pub struct CreatePostDto {
+    pub name: String,
     pub title: String,
     pub user_id: String,
     pub description: String,
     pub cover_image: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdatePost {
+    pub name: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub cover_image: Option<String>,
 }

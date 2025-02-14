@@ -10,16 +10,16 @@ use axum::{
 use serde_json::Value;
 
 use crate::{
-    models::posts::{CreatePostDto, Post},
+    models::posts::{CreatePostDto, Post, UpdatePost},
     AppState, Result,
 };
 
 pub fn posts_handler() -> Router {
     Router::new()
         .route("/get_posts", get(get_posts))
-        .route("/create_post", post(create_post))
-        .route("/update_post", put(update_post))
-        .route("/delete_post/{id}", delete(delete_post))
+        .route("/create-post", post(create_post))
+        .route("/update-post/{id}", put(update_post))
+        .route("/delete-post/{id}", delete(delete_post))
         .route("/videos", get(get_videos))
         .route("/feed", get(feed))
         .route("/post/{name}", get(get_post))
@@ -38,6 +38,7 @@ async fn create_post(
         .auth_service
         .create_post(
             &new_post.user_id,
+            &new_post.name,
             &new_post.title,
             &new_post.description,
             &new_post.cover_image,
@@ -48,15 +49,17 @@ async fn create_post(
 
 async fn update_post(
     Extension(app_state): Extension<Arc<AppState>>,
-    Json(update_post): Json<Post>,
+    Path(post_id): Path<String>,
+    Json(update_post): Json<UpdatePost>,
 ) -> Result<impl IntoResponse> {
     let upadeted_post = app_state
         .auth_service
         .update_post(
-            &update_post.user_id,
-            &update_post.title,
-            &update_post.description,
-            &update_post.cover_image,
+            &post_id,
+            update_post.name.as_deref(),
+            update_post.title.as_deref(),
+            update_post.description.as_deref(),
+            update_post.cover_image.as_deref(),
         )
         .await?;
 

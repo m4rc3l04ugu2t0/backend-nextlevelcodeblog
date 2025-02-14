@@ -14,6 +14,7 @@ pub trait PostsRepository: Sync + Send {
     async fn create_post(
         &self,
         user_id: &str,
+        name: &str,
         title: &str,
         description: &str,
         cover_image: &str,
@@ -21,6 +22,7 @@ pub trait PostsRepository: Sync + Send {
     async fn update_post(
         &self,
         post_id: &str,
+        name: Option<&str>,
         title: Option<&str>,
         description: Option<&str>,
         cover_image: Option<&str>,
@@ -34,7 +36,7 @@ impl PostsRepository for PostgresRepo {
         let posts = sqlx::query_as!(
             Post,
             r#"
-            SELECT id, user_id, title, description, cover_image, created_at FROM posts
+            SELECT id, user_id, name, title, description, cover_image, created_at FROM posts
             "#
         )
         .fetch_all(&self.pool)
@@ -45,6 +47,7 @@ impl PostsRepository for PostgresRepo {
     async fn create_post(
         &self,
         user_id: &str,
+        name: &str,
         title: &str,
         description: &str,
         cover_image: &str,
@@ -55,12 +58,13 @@ impl PostsRepository for PostgresRepo {
         let post = sqlx::query_as!(
             Post,
             r#"
-          INSERT INTO posts (id, user_id, title, description, cover_image)
-          VALUES ($1, $2, $3, $4, $5)
-          RETURNING id, user_id, title, description, cover_image, created_at
+          INSERT INTO posts (id, user_id, name, title, description, cover_image)
+          VALUES ($1, $2, $3, $4, $5, $6)
+          RETURNING id, user_id, name, title, description, cover_image, created_at
           "#,
             id,
             user_id,
+            name,
             title,
             description,
             cover_image,
@@ -73,6 +77,7 @@ impl PostsRepository for PostgresRepo {
     async fn update_post(
         &self,
         post_id: &str,
+        name: Option<&str>,
         title: Option<&str>,
         description: Option<&str>,
         cover_image: Option<&str>,
@@ -83,13 +88,15 @@ impl PostsRepository for PostgresRepo {
             Post,
             r#"
             UPDATE posts
-            SET title = COALESCE($2, title),
-                description = COALESCE($3, description),
-                cover_image = COALESCE($4, cover_image)
+            SET name = COALESCE($2, name),
+                title = COALESCE($3, title),
+                description = COALESCE($4, description),
+                cover_image = COALESCE($5, cover_image)
             WHERE id = $1
-            RETURNING id, user_id, title, description, cover_image, created_at
+            RETURNING id, user_id, name, title, description, cover_image, created_at
             "#,
             post_id,
+            name,
             title,
             description,
             cover_image
