@@ -104,7 +104,7 @@ pub fn create_routes(app_state: Arc<AppState>) -> Router {
     let api_route = Router::new()
         .nest("/auth", auth_handler())
         .nest("/users", users_handler().layer(middleware::from_fn(auth)))
-        .nest("/posts", posts_handler())
+        .nest("/news_posts", posts_handler().layer(middleware::from_fn(auth)))
         .fallback_service(routes_static())
         .layer(TraceLayer::new_for_http())
         .layer(Extension(app_state));

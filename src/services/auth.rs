@@ -14,11 +14,15 @@ use crate::{
     errors::ValidationResponse,
     mail::mails::send_forgot_password_email,
     models::{
+        news_post::{CreateNewsPostDto, NewsPost, UpdateNewsPost},
         posts::{CreatePostDto, Post},
         response::Response,
         users::{FilterUserDto, NameUpdateDto, User, UserPasswordUpdateDto},
     },
-    repositories::{posts_repo::PostsRepository, user_repo::UserRepository, PostgresRepo},
+    repositories::{
+        news_post_repo::NewsPostsRepository, posts_repo::PostsRepository,
+        user_repo::UserRepository, PostgresRepo,
+    },
     Error, Result,
 };
 
@@ -81,7 +85,9 @@ impl AuthService {
             .user_repo
             .get_user(None, None, Some(email), None)
             .await?
-            .ok_or(Error::BadRequest("User not found, create an account!".to_string()))?;
+            .ok_or(Error::BadRequest(
+                "User not found, create an account!".to_string(),
+            ))?;
 
         let argon2 = Argon2::default();
         let parsed_hash =
@@ -133,7 +139,6 @@ impl AuthService {
             .user_repo
             .get_user(None, None, Some(&email), None)
             .await?;
-
 
         let user = user.ok_or(Error::BadRequest("E-mail inválido!".to_string()))?;
 
@@ -322,6 +327,44 @@ impl AuthService {
         self.user_repo
             .update_password(user_id, &hash_password)
             .await?;
+        Ok(())
+    }
+
+    pub async fn get_news_posts(&self) -> Result<Vec<NewsPost>> {
+        let newspost = self.user_repo.get_news_posts().await?;
+
+        Ok(newspost)
+    }
+
+    pub async fn create_news_post(&self, news_post: CreateNewsPostDto) -> Result<NewsPost> {
+        let news_post = self
+            .user_repo
+            .create_news_post(&news_post.url, &news_post.description)
+            .await?;
+
+        Ok(news_post)
+    }
+
+    pub async fn update_news_post(
+        &self,
+        news_post_id: &str,
+        update_news_post_url: Option<&str>,
+        update_news_post_description: Option<&str>,
+    ) -> Result<NewsPost> {
+        let update_news_post = self
+            .user_repo
+            .update_news_post(
+                news_post_id,
+                update_news_post_url,
+                update_news_post_description,
+            )
+            .await?;
+
+        Ok(update_news_post)
+    }
+
+    pub async fn delete_news_post(&self, news_post_id: &str) -> Result<()> {
+        self.user_repo.delete_news_post(news_post_id).await?;
         Ok(())
     }
 }

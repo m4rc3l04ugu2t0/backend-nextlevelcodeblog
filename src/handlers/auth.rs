@@ -68,7 +68,7 @@ pub async fn login(
     Json(user): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
     user.validate()?;
-     info!("lssssssss");
+    info!("lssssssss");
 
     let token = app_state
         .auth_service
@@ -130,8 +130,7 @@ pub async fn forgot_password(
     Extension(app_state): Extension<Arc<AppState>>,
     Json(email): Json<ForgotPasswordRequestDto>,
 ) -> Result<impl IntoResponse> {
-    email
-        .validate()?;
+    email.validate()?;
 
     app_state.auth_service.forgot_password(email.email).await?;
 

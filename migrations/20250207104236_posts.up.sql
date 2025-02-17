@@ -1,5 +1,4 @@
--- Add up migration script here
--- CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE posts (
     id UUID PRIMARY KEY, -- Garante um UUID automático se não for informado
