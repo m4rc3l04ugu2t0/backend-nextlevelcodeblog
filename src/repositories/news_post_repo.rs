@@ -309,7 +309,6 @@ impl NewsPostsRepository for PostgresRepo {
         .fetch_one(&self.pool)
         .await?;
 
-        // Converte a coluna comments para um vetor de CommentWithAuthor
         let comments: Vec<CommentWithAuthor> = serde_json::from_value(
             post_row
                 .comments

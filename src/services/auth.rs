@@ -56,7 +56,7 @@ impl AuthService {
             .await?
             .is_some()
         {
-            return Err(Error::BadRequest("Email already exists".to_string()));
+            return Err(Error::BadRequest("Email already exists. vo chpra".to_string()));
         }
 
         let verification_token = Uuid::now_v7();

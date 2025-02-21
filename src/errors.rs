@@ -24,6 +24,7 @@ pub enum Error {
     InvalidHashFormat(argon2::password_hash::Error),
     Forbidden,
     Validation(ValidationErrors),
+    ReadString(String)
 }
 
 #[derive(Serialize)]
@@ -75,6 +76,7 @@ impl IntoResponse for Error {
 
                 (StatusCode::BAD_REQUEST, Json(response)).into_response()
             }
+            Self::ReadString(err) => (StatusCode::FAILED_DEPENDENCY, err).into_response(),
         }
     }
 }
@@ -99,6 +101,15 @@ impl From<ValidationErrors> for Error {
         Self::Validation(err)
     }
 }
+
+
+impl From<std::string::String> for Error {
+    fn from(err: std::string::String) -> Self {
+        error!("Invalid hash format");
+        Self::ReadString(err)
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ErrorResponse {
     pub status: String,

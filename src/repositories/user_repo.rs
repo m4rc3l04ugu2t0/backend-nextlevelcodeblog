@@ -39,6 +39,7 @@ pub trait UserRepository: Send + Sync {
     async fn delete_user(&self, user_id: Uuid) -> Result<()>;
 }
 
+
 #[async_trait]
 impl UserRepository for PostgresRepo {
     async fn get_user(
@@ -49,6 +50,7 @@ impl UserRepository for PostgresRepo {
         token: Option<&str>,
     ) -> Result<Option<User>> {
         let mut user: Option<User> = None;
+        info!("{:?}", user);
 
         if let Some(user_id) = user_id {
             user = sqlx::query_as!(
