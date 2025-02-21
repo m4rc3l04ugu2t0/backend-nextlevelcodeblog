@@ -12,17 +12,17 @@ use uuid::Uuid;
 
 use crate::{
     errors::ValidationResponse,
-    mail::mails::send_forgot_password_email,
+    mail::mails::{send_forgot_password_email, send_welcome_email},
     models::{
-        news_post::{CreateNewsPostDto, NewsPost, UpdateNewsPost},
-        posts::{CreatePostDto, Post},
+        news_post::{
+            CreateNewsPostDto, NewsPost, PostComment, PostCommentWithAuthor,
+            PostCommentWithComments, UpdateNewsPost,
+        },
+        query::{CreateCategory, CreateVideo, ReturnVideo, Video, VideoDto},
         response::Response,
         users::{FilterUserDto, NameUpdateDto, User, UserPasswordUpdateDto},
     },
-    repositories::{
-        news_post_repo::NewsPostsRepository, posts_repo::PostsRepository,
-        user_repo::UserRepository, PostgresRepo,
-    },
+    repositories::{news_post_repo::NewsPostsRepository, user_repo::UserRepository, PostgresRepo},
     Error, Result,
 };
 
@@ -89,6 +89,10 @@ impl AuthService {
                 "User not found, create an account!".to_string(),
             ))?;
 
+        if !user.verified {
+            return Err(Error::BadRequest("Check your e-email!".to_string()));
+        }
+
         let argon2 = Argon2::default();
         let parsed_hash =
             PasswordHash::new(&user.password).map_err(|_| Error::InternalServerError)?;
@@ -122,14 +126,16 @@ impl AuthService {
             .get_user(None, None, None, Some(&token))
             .await?;
 
-        let user = user.ok_or(Error::BadRequest("Invalidinvalid email".to_string()))?;
+        let user = user.ok_or(Error::BadRequest("Invalid data".to_string()))?;
 
         if let Some(expires_at) = user.token_expires_at {
             if expires_at < Utc::now() {
                 return Err(Error::BadRequest("Token expired".to_string()));
             }
         }
-        self.user_repo.verifed_token(token).await?;
+        self.user_repo.verifed_token(&token).await?;
+        // self.user_repo.verifed_token(&user.verification_token).await?;
+        send_welcome_email(&user.email, &user.name).await?;
 
         self.generate_token(user.id, self.jwt_expiration)
     }
@@ -153,7 +159,7 @@ impl AuthService {
             .await?;
 
         let reset_link = format!(
-            "http://localhost:3000/reset/reset-password?token={}",
+            "http://localhost:3000/confirm-auth/reset-password?token={}",
             &verification_token
         );
 
@@ -194,7 +200,7 @@ impl AuthService {
             .update_password(user_id, &password_hash)
             .await?;
 
-        self.user_repo.verifed_token(token).await?;
+        self.user_repo.verifed_token(&token).await?;
 
         Ok(())
     }
@@ -220,49 +226,6 @@ impl AuthService {
         .map_err(|_| Error::NotFound)?;
 
         Ok(Uuid::parse_str(&decode.claims.sub).map_err(|_| Error::Unauthorized)?)
-    }
-
-    pub async fn get_posts(&self) -> Result<Vec<Post>> {
-        let posts = self.user_repo.get_posts().await?;
-        Ok(posts)
-    }
-
-    pub async fn create_post(
-        &self,
-        user_id: &str,
-        name: &str,
-        title: &str,
-        description: &str,
-        cover_image: &str,
-    ) -> Result<Post> {
-        let new_post = self
-            .user_repo
-            .create_post(user_id, name, title, description, cover_image)
-            .await?;
-
-        Ok(new_post)
-    }
-
-    pub async fn update_post(
-        &self,
-        post_id: &str,
-        name: Option<&str>,
-        title: Option<&str>,
-        description: Option<&str>,
-        cover_image: Option<&str>,
-    ) -> Result<Post> {
-        let updated_post = self
-            .user_repo
-            .update_post(&post_id, name, title, description, cover_image)
-            .await?;
-
-        Ok(updated_post)
-    }
-
-    pub async fn delete_post(&self, post_id: &str) -> Result<()> {
-        let deleted_post = self.user_repo.delete_post(&post_id).await?;
-
-        Ok(())
     }
 
     pub async fn delete_user(&self, user_id: &str) -> Result<()> {
@@ -336,10 +299,19 @@ impl AuthService {
         Ok(newspost)
     }
 
-    pub async fn create_news_post(&self, news_post: CreateNewsPostDto) -> Result<NewsPost> {
+    pub async fn create_news_post(
+        &self,
+        news_post: CreateNewsPostDto,
+        author_id: &str,
+    ) -> Result<NewsPost> {
         let news_post = self
             .user_repo
-            .create_news_post(&news_post.url, &news_post.description)
+            .create_news_post(
+                &news_post.url,
+                &news_post.description,
+                &author_id,
+                &news_post.author_name,
+            )
             .await?;
 
         Ok(news_post)
@@ -366,5 +338,141 @@ impl AuthService {
     pub async fn delete_news_post(&self, news_post_id: &str) -> Result<()> {
         self.user_repo.delete_news_post(news_post_id).await?;
         Ok(())
+    }
+
+    pub async fn videos(&self) -> Result<Vec<Video>> {
+        let videos = self.user_repo.videos().await?;
+        Ok(videos)
+    }
+
+    pub async fn create_video(
+        &self,
+        title: &str,
+        youtube_id: &str,
+        duration: &str,
+        views: Option<i32>,
+    ) -> Result<()> {
+        let id = Uuid::now_v7();
+        self
+            .user_repo
+            .create_video(id, title, youtube_id, duration, views)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn update_video(
+        &self,
+        video_id: &str,
+        title: Option<&str>,
+        youtube_id: Option<&str>,
+        duration: Option<&str>,
+        views: Option<i32>,
+    ) -> Result<()> {
+        let video_id = Uuid::parse_str(video_id).unwrap();
+ self
+            .user_repo
+            .update_video(video_id, title, youtube_id, duration, views)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn delete_video(&self, video_id: &str) -> Result<()> {
+        let video_id = Uuid::parse_str(video_id).unwrap();
+        self.user_repo.delete_video(video_id).await?;
+
+        Ok(())
+    }
+
+    pub async fn create_category(&self, category: &str) -> Result<CreateCategory> {
+        let category_id = Uuid::now_v7();
+        let category = self
+            .user_repo
+            .create_category(category_id, category)
+            .await?;
+
+        Ok(category)
+    }
+
+    pub async fn delete_category(&self, category_id: &str) -> Result<()> {
+        let category_id = Uuid::parse_str(category_id).unwrap();
+        self.user_repo.delete_category(category_id).await?;
+        Ok(())
+    }
+
+    pub async fn add_category_to_video(&self, video_id: &str, category_id: &str) -> Result<()> {
+        let video_id = Uuid::parse_str(video_id).unwrap();
+        let category_id = Uuid::parse_str(category_id).unwrap();
+        self.user_repo
+            .add_category_to_video(video_id, category_id)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn remove_category_from_video(
+        &self,
+        video_id: &str,
+        category_id: &str,
+    ) -> Result<()> {
+        let video_id = Uuid::parse_str(video_id).unwrap();
+        let category_id = Uuid::parse_str(category_id).unwrap();
+        self.user_repo
+            .remove_category_from_video(video_id, category_id)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_comments_for_post(&self, post_id: &str) -> Result<Vec<PostCommentWithAuthor>> {
+        let comments = self.user_repo.get_comments_for_post(&post_id).await?;
+
+        Ok(comments)
+    }
+
+    pub async fn get_video_by_youtube_id(&self, youtube_id: &str) -> Result<ReturnVideo> {
+        let video = self.user_repo.get_video_by_youtube_id(&youtube_id).await?;
+
+        Ok(video)
+    }
+
+    pub async fn create_comment(
+        &self,
+        post_id: &str,
+        content: &str,
+        author_id: &str,
+        author_name: &str,
+    ) -> Result<PostComment> {
+        let created_comment = self
+            .user_repo
+            .create_comment(post_id, content, author_id, author_name)
+            .await?;
+        Ok(created_comment)
+    }
+
+    pub async fn update_comment(
+        &self,
+        comment_id: &str,
+        content: Option<&str>,
+    ) -> Result<PostComment> {
+        let updated_comment = self.user_repo.update_comment(comment_id, content).await?;
+        Ok(updated_comment)
+    }
+
+    pub async fn delete_comment(&self, comment_id: &str) -> Result<()> {
+        self.user_repo.delete_comment(comment_id).await?;
+
+        Ok(())
+    }
+
+    pub async fn get_posts_with_comments(&self, post_id: &str) -> Result<PostCommentWithComments> {
+        let posts = self.user_repo.get_posts_with_comments(post_id).await?;
+
+        Ok(posts)
+    }
+
+    pub async fn get_all_posts_with_comments(&self) -> Result<Vec<PostCommentWithComments>> {
+        let posts_with_comments = self.user_repo.get_all_posts_with_comments().await?;
+
+        Ok(posts_with_comments)
     }
 }

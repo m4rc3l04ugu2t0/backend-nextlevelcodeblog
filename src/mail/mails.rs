@@ -5,7 +5,7 @@ use super::sendmail::send_email;
 pub async fn send_verification_email(to_email: &str, username: &str, token: &str) -> Result<()> {
     let subject = "Email Verification";
     let template_path = "src/mail/templates/Verification-email.html";
-    let base_url = "http://localhost:8000/api/auth/verify";
+    let base_url = "http://localhost:3000/confirm-auth/verify-email";
     let verification_link = create_verification_link(base_url, token);
     let placeholders = vec![
         ("{{username}}".to_string(), username.to_string()),

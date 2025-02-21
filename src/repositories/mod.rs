@@ -1,7 +1,6 @@
 use sqlx::PgPool;
 
 pub mod news_post_repo;
-pub mod posts_repo;
 pub mod user_repo;
 
 #[derive(Clone)]

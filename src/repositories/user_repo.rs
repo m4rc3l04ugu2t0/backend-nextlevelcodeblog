@@ -1,11 +1,11 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::PgPool;
+use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    models::users::{NameUpdateDto, User, UserRole},
-    Result,
+    models::users::{NameUpdateDto, User, UserRole}, Error, Result
 };
 
 use super::PostgresRepo;
@@ -20,7 +20,7 @@ pub trait UserRepository: Send + Sync {
         verification_token: String,
         token_expires_at: Option<DateTime<Utc>>,
     ) -> Result<User>;
-    async fn verifed_token(&self, token_expires_at: String) -> Result<()>;
+    async fn verifed_token(&self, token: &str) -> Result<()>;
     async fn get_user(
         &self,
         user_id: Option<Uuid>,
@@ -112,23 +112,28 @@ impl UserRepository for PostgresRepo {
         Ok(user)
     }
 
-    async fn verifed_token(&self, token: String) -> Result<()> {
-        let _ = sqlx::query!(
-            r#"
-            UPDATE users
-            SET verified = true,
-                updated_at = Now(),
-                verification_token = NULL,
-                token_expires_at = NULL
-            WHERE verification_token = $1
-            "#,
-            &token
-        )
-        .execute(&self.pool)
-        .await;
+
+
+ async fn verifed_token(&self, token: &str) -> Result<()> {
+      sqlx::query!(
+        r#"
+        UPDATE users
+        SET verified = true,
+            updated_at = Now(),
+            verification_token = NULL,
+            token_expires_at = NULL
+        WHERE verification_token = $1
+        "#,
+        token
+    )
+    .execute(&self.pool)
+    .await?;
+
 
         Ok(())
-    }
+
+}
+
 
     async fn add_verifed_token(
         &self,
@@ -136,7 +141,7 @@ impl UserRepository for PostgresRepo {
         token_expires_at: DateTime<Utc>,
         token: &str,
     ) -> Result<()> {
-        let _ = sqlx::query!(
+        sqlx::query!(
             r#"
             UPDATE users
             SET verification_token = $1,
@@ -188,7 +193,7 @@ impl UserRepository for PostgresRepo {
     }
 
     async fn delete_user(&self, user_id: Uuid) -> Result<()> {
-        let _ = sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
+         sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
             .execute(&self.pool)
             .await?;
 

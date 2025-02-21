@@ -31,7 +31,7 @@ pub fn auth_handler() -> Router {
     Router::new()
         .route("/register", post(register))
         .route("/login", post(login))
-        .route("/verify", get(verify_email))
+        .route("/verify-email", get(verify_email))
         .route("/forgot-password", post(forgot_password))
         .route("/reset-password", post(reset_password))
 }
@@ -47,11 +47,8 @@ pub async fn register(
         .register(new_user.name, new_user.email, new_user.password)
         .await?;
 
-    let verification_token = Uuid::now_v7().to_string();
-    let expires_at = Utc::now() + chrono::Duration::hours(24);
-
-    let send_email_result =
-        send_verification_email(&user.email, &user.password, &verification_token).await?;
+    let token = user.verification_token.ok_or(Error::BadRequest("Invalid data".to_string()))?;
+    send_verification_email(&user.email, &user.name, &token).await?;
 
     Ok((
         StatusCode::CREATED,
@@ -68,7 +65,6 @@ pub async fn login(
     Json(user): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
     user.validate()?;
-    info!("lssssssss");
 
     let token = app_state
         .auth_service
