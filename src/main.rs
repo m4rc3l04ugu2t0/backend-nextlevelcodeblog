@@ -67,7 +67,7 @@ async fn main() {
     let db_blog = PostgresRepo::new(pool.clone());
 
     let cors = CorsLayer::new()
-        .allow_origin("https://nextlevelblog.onrender.com".parse::<HeaderValue>().unwrap())
+        .allow_origin(env::var("ALLOW_ORIGIN").expect("ALLOW_ORIGIN must be set").parse::<HeaderValue>().unwrap())
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);

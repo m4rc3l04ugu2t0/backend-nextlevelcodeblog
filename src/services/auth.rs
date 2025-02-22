@@ -57,7 +57,7 @@ impl AuthService {
             .is_some()
         {
             return Err(Error::BadRequest(
-                "Email already exists. vo chpra".to_string(),
+                "Email already exists.".to_string(),
             ));
         }
 
