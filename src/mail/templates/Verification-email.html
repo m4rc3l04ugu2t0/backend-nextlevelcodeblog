@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email</title>
+    <style>
+        /* Same style as previous template */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">YourApp</div>
+        </div>
+
+        <div class="content">
+            <h2>📧 Verify Your Email</h2>
+            <p>Welcome <strong>{{username}}</strong>!</p>
+            <p>Please verify your email to complete registration:</p>
+
+            <a href="{{verification_link}}" class="button">Verify Email</a>
+
+            <p>Having trouble? Contact our <a href="mailto:support@yourapp.com" style="color: #007bff;">support team</a></p>
+        </div>
+
+        <div class="footer">
+            <p>Already verified? <a href="{{login_url}}" style="color: #007bff;">Login here</a></p>
+        </div>
+    </div>
+</body>
+</html>
