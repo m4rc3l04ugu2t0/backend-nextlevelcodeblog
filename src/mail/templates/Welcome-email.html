@@ -5,24 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
     <style>
-        /* Same style as previous template */
+        body { margin: 0; padding: 40px 20px; font-family: 'Segoe UI', sans-serif; background: #f8f9fa; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+        .header { background: #007bff; padding: 32px; text-align: center; }
+        .logo { color: white; font-size: 24px; font-weight: 600; }
+        .content { padding: 40px; }
+        h2 { color: #2d3436; font-size: 28px; margin: 0 0 24px 0; }
+        p { font-size: 16px; line-height: 1.6; color: #636e72; margin: 0 0 20px 0; }
+        .button { display: inline-block; padding: 14px 32px; background: #007bff; color: white; text-decoration: none; border-radius: 8px; transition: all 0.3s; }
+        .button:hover { background: #0056b3; transform: translateY(-1px); }
+        .footer { padding: 24px 40px; background: #f8f9fa; text-align: center; border-top: 1px solid #e9ecef; color: #6c757d; }
+        .code { background: #f8f9fa; padding: 12px; border-radius: 6px; font-family: monospace; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">YourApp</div>
+            <div class="logo">NextLevelCode-Blog</div>
         </div>
 
         <div class="content">
-            <h2>🎉 Welcome to YourApp!</h2>
+            <h2>🎉 Welcome to NextLevelCode-Blog!</h2>
             <p>Hi <strong>{{username}}</strong>,</p>
-            <p>Thanks for joining! Here's what you can do:</p>
+            <p>Thanks for joining! I hope you enjoy the content.</p>
 
             <ul style="color: #636e72; padding-left: 20px;">
-                <li>🔐 Secure account management</li>
-                <li>⚡ Lightning-fast performance</li>
-                <li>📱 Mobile-optimized experience</li>
+                <li>🔐 Discussions on various topics</li>
+                <li>⚡ Read and give ideas for articles</li>
+                <li>📱 My personal website to show my research</li>
             </ul>
 
             <p>Need help? Reply to this email or visit our <a href="{{help_center}}" style="color: #007bff;">help center</a></p>
@@ -31,7 +41,7 @@
         <div class="footer">
             <p>Follow us:
                 <a href="{{twitter_url}}" style="color: #007bff;">Twitter</a> •
-                <a href="{{linkedin_url}}" style="color: #007bff;">LinkedIn</a>
+                <a href="{{github_url}}" style="color: #007bff;">LinkedIn</a>
             </p>
         </div>
     </div>
