@@ -24,7 +24,7 @@ pub enum Error {
     InvalidHashFormat(argon2::password_hash::Error),
     Forbidden,
     Validation(ValidationErrors),
-    ReadString(String)
+    ReadString(String),
 }
 
 #[derive(Serialize)]
@@ -101,7 +101,6 @@ impl From<ValidationErrors> for Error {
         Self::Validation(err)
     }
 }
-
 
 impl From<std::string::String> for Error {
     fn from(err: std::string::String) -> Self {

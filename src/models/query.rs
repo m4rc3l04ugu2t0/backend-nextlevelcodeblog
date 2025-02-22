@@ -20,7 +20,7 @@ pub struct Video {
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize)]
 pub struct CreateVideo {
-    pub id: uuid::Uuid,       // Tipo correto para UUID
+    pub id: uuid::Uuid, // Tipo correto para UUID
     pub title: String,
     pub youtube_id: String,
     pub duration: String,

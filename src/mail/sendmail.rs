@@ -4,8 +4,8 @@ use lettre::{
     transport::smtp::authentication::Credentials,
     Message, SmtpTransport, Transport,
 };
-use tracing::info;
 use std::{env::var, fs::read_to_string};
+use tracing::info;
 
 pub async fn send_email(
     to: &str,

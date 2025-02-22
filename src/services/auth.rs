@@ -56,7 +56,9 @@ impl AuthService {
             .await?
             .is_some()
         {
-            return Err(Error::BadRequest("Email already exists. vo chpra".to_string()));
+            return Err(Error::BadRequest(
+                "Email already exists. vo chpra".to_string(),
+            ));
         }
 
         let verification_token = Uuid::now_v7();
@@ -353,8 +355,7 @@ impl AuthService {
         views: Option<i32>,
     ) -> Result<()> {
         let id = Uuid::now_v7();
-        self
-            .user_repo
+        self.user_repo
             .create_video(id, title, youtube_id, duration, views)
             .await?;
         Ok(())
@@ -369,8 +370,7 @@ impl AuthService {
         views: Option<i32>,
     ) -> Result<()> {
         let video_id = Uuid::parse_str(video_id).unwrap();
- self
-            .user_repo
+        self.user_repo
             .update_video(video_id, title, youtube_id, duration, views)
             .await?;
 
