@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -161,7 +161,7 @@ impl AuthService {
             .await?;
 
         let reset_link = format!(
-            "http://localhost:3000/confirm-auth/reset-password?token={}",
+            "{}/confirm-auth/reset-password?token={}", env::var("API_URL").expect("API_URL must be set"),
             &verification_token
         );
 
