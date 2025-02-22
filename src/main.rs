@@ -2,12 +2,10 @@
 use std::{env, sync::Arc};
 
 use axum::{
-    http::{
+    body::Body, extract::Request, http::{
         header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
         HeaderValue, Method, StatusCode,
-    },
-    routing::get_service,
-    Extension, Router,
+    }, middleware::{from_fn_with_state, Next}, response::Response, routing::get_service, Extension, Router
 };
 use config::Config;
 use dotenv::dotenv;
@@ -33,9 +31,29 @@ mod services;
 
 #[derive(Clone)]
 pub struct AppState {
+    pub api_key: String,
     pub db_pool: PgPool,
     pub config: Config,
     pub auth_service: AuthService,
+}
+
+async fn require_api_key(req: Request<Body>, next: Next) -> std::result::Result<Response, StatusCode> {
+    // Se o método for OPTIONS, pule a autenticação
+    if req.method() == axum::http::Method::OPTIONS {
+        return Ok(next.run(req).await);
+    }
+
+    // Caso contrário, continue verificando a API_KEY normalmente
+    let headers = req.headers();
+    if let Some(api_key) = headers.get("X-Api-Key") {
+        if api_key == env::var("API_KEY").unwrap().as_str() {
+            Ok(next.run(req).await)
+        } else {
+            Err(StatusCode::UNAUTHORIZED)
+        }
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
+    }
 }
 
 #[tokio::main]
@@ -48,6 +66,8 @@ async fn main() {
     dotenv().ok();
 
     let config = Config::init();
+
+    let api_key = env::var("API_KEY").expect("API_KEY must be set");
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -73,12 +93,13 @@ async fn main() {
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);
 
     let app_state = AppState {
+        api_key,
         db_pool: pool,
         config: config.clone(),
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state)).layer(cors);
+    let app = create_routes(Arc::new(app_state.clone())).layer(cors).layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
         "[::]:{}",
