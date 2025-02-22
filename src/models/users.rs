@@ -27,7 +27,7 @@ pub struct User {
     pub password: String,
     pub role: UserRole,
     pub verified: bool,
-    pub verification_token: Option<String>,              // Changed to Option
+    pub verification_token: Option<String>, // Changed to Option
     pub token_expires_at: Option<DateTime<Utc>>, // Changed to Option
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,

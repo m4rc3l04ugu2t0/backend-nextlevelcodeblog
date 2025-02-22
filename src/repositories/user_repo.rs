@@ -5,7 +5,8 @@ use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    models::users::{NameUpdateDto, User, UserRole}, Error, Result
+    models::users::{NameUpdateDto, User, UserRole},
+    Error, Result,
 };
 
 use super::PostgresRepo;
@@ -38,7 +39,6 @@ pub trait UserRepository: Send + Sync {
     async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User>;
     async fn delete_user(&self, user_id: Uuid) -> Result<()>;
 }
-
 
 #[async_trait]
 impl UserRepository for PostgresRepo {
@@ -114,11 +114,9 @@ impl UserRepository for PostgresRepo {
         Ok(user)
     }
 
-
-
- async fn verifed_token(&self, token: &str) -> Result<()> {
-      sqlx::query!(
-        r#"
+    async fn verifed_token(&self, token: &str) -> Result<()> {
+        sqlx::query!(
+            r#"
         UPDATE users
         SET verified = true,
             updated_at = Now(),
@@ -126,16 +124,13 @@ impl UserRepository for PostgresRepo {
             token_expires_at = NULL
         WHERE verification_token = $1
         "#,
-        token
-    )
-    .execute(&self.pool)
-    .await?;
-
+            token
+        )
+        .execute(&self.pool)
+        .await?;
 
         Ok(())
-
-}
-
+    }
 
     async fn add_verifed_token(
         &self,
@@ -195,7 +190,7 @@ impl UserRepository for PostgresRepo {
     }
 
     async fn delete_user(&self, user_id: Uuid) -> Result<()> {
-         sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
+        sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
             .execute(&self.pool)
             .await?;
 

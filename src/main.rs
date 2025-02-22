@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use axum::{
     http::{
@@ -49,26 +49,25 @@ async fn main() {
 
     let config = Config::init();
 
-
-let pool = match PgPoolOptions::new()
-.max_connections(10)
-.connect(&config.database_url)
-.await
-{
-Ok(pool) => {
-    println!("✅ Connection to the database is successful!");
-    pool// 👈 Desabilita o cache de prepared statements
-}
-Err(err) => {
-    println!("🔥 Failed to connect to the database: {:?}", err);
-    std::process::exit(1);
-}
-};
+    let pool = match PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&config.database_url)
+        .await
+    {
+        Ok(pool) => {
+            println!("✅ Connection to the database is successful!");
+            pool
+        }
+        Err(err) => {
+            println!("🔥 Failed to connect to the database: {:?}", err);
+            std::process::exit(1);
+        }
+    };
 
     let db_blog = PostgresRepo::new(pool.clone());
 
     let cors = CorsLayer::new()
-        .allow_origin("http://localhost:3000".parse::<HeaderValue>().unwrap())
+        .allow_origin("https://nextlevelblog.onrender.com".parse::<HeaderValue>().unwrap())
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true)
         .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);
@@ -81,7 +80,12 @@ Err(err) => {
 
     let app = create_routes(Arc::new(app_state)).layer(cors);
 
-    let listener = tokio::net::TcpListener::bind("[::]:8080").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!(
+        "[::]:{}",
+        env::var("PORT").unwrap_or_else(|_| "8080".to_string())
+    ))
+    .await
+    .unwrap();
     info!("{} - {:?}", "LISTENING", listener.local_addr());
     axum::serve(listener, app).await.unwrap();
 }

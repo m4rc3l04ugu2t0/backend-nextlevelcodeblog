@@ -426,7 +426,7 @@ impl NewsPostsRepository for PostgresRepo {
         duration: Option<&str>,
         views: Option<i32>,
     ) -> Result<()> {
-          sqlx::query!(
+        sqlx::query!(
             r#"
             UPDATE videos
             SET

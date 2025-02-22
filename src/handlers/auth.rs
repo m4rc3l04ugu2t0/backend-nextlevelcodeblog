@@ -47,7 +47,9 @@ pub async fn register(
         .register(new_user.name, new_user.email, new_user.password)
         .await?;
 
-    let token = user.verification_token.ok_or(Error::BadRequest("Invalid data".to_string()))?;
+    let token = user
+        .verification_token
+        .ok_or(Error::BadRequest("Invalid data".to_string()))?;
     send_verification_email(&user.email, &user.name, &token).await?;
 
     Ok((
