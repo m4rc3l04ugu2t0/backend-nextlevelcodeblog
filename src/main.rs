@@ -36,9 +36,13 @@ pub struct AppState {
     pub auth_service: AuthService,
 }
 fn configure_cors() -> CorsLayer {
+    let x_api_key = HeaderName::from_static("X-Api-Key");
+
     CorsLayer::new()
         .allow_origin([
-            "https://nextlevelcode-blog.vercel.app".parse().unwrap(),
+            "https://nextlevelcode-blog.vercel.app"
+                .parse()
+                .expect("Invalid origin format"),
         ])
         .allow_methods(vec![
             Method::GET,
@@ -51,28 +55,35 @@ fn configure_cors() -> CorsLayer {
             AUTHORIZATION,
             CONTENT_TYPE,
             ACCEPT,
-            HeaderName::from_static("X-Api-Key"),
+            x_api_key, // Usa a variável criada
         ])
         .allow_credentials(true)
         .expose_headers(vec![CONTENT_DISPOSITION])
-        .max_age(std::time::Duration::from_secs(86400)) // 24 horas
+        .max_age(std::time::Duration::from_secs(86400))
 }
-async fn require_api_key(req: Request<Body>, next: Next) -> std::result::Result<Response, StatusCode> {
-    // Se o método for OPTIONS, pule a autenticação
-    if req.method() == axum::http::Method::OPTIONS {
+async fn require_api_key(
+    req: Request<Body>,
+    next: Next,
+) -> std::result::Result<Response, StatusCode> {
+    // Permite requisições OPTIONS sem autenticação
+    if req.method() == Method::OPTIONS {
         return Ok(next.run(req).await);
     }
 
-    // Caso contrário, continue verificando a API_KEY normalmente
     let headers = req.headers();
-    if let Some(api_key) = headers.get("X-Api-Key") {
-        if api_key == env::var("API_KEY").unwrap().as_str() {
-            Ok(next.run(req).await)
-        } else {
-            Err(StatusCode::UNAUTHORIZED)
+    let api_key_header = HeaderName::from_static("x-api-key");
+
+    match headers.get(&api_key_header) {
+        Some(api_key_value) => {
+            let stored_key = env::var("API_KEY").unwrap_or_default();
+
+            if api_key_value.to_str().unwrap_or("") == stored_key {
+                Ok(next.run(req).await)
+            } else {
+                Err(StatusCode::UNAUTHORIZED)
+            }
         }
-    } else {
-        Err(StatusCode::UNAUTHORIZED)
+        None => Err(StatusCode::UNAUTHORIZED),
     }
 }
 
@@ -87,7 +98,13 @@ async fn main() {
 
     let config = Config::init();
 
-    let api_key = env::var("API_KEY").expect("API_KEY must be set");
+    let api_key = env::var("API_KEY").unwrap_or_else(|_| {
+        panic!("🔒 API_KEY environment variable must be set and non-empty!");
+    });
+
+    if api_key.is_empty() {
+        panic!("🔒 API_KEY cannot be empty!");
+    }
 
     let pool = match PgPoolOptions::new()
         .max_connections(10)
@@ -114,7 +131,7 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(TraceLayer::new_for_http()).layer(from_fn_with_state(app_state, require_api_key));
+    let app = create_routes(Arc::new(app_state.clone())).layer(CatchPanicLayer::new()).layer(configure_cors()).layer(TraceLayer::new_for_http()).layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
         "[::]:{}",
