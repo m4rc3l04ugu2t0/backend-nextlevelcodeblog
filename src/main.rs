@@ -3,8 +3,7 @@ use std::{env, sync::Arc};
 
 use axum::{
     body::Body, extract::Request, http::{
-        header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE},
-        HeaderValue, Method, StatusCode,
+        header::{ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE}, HeaderName, HeaderValue, Method, StatusCode
     }, middleware::{from_fn_with_state, Next}, response::Response, routing::get_service, Extension, Router
 };
 use config::Config;
@@ -13,7 +12,7 @@ use repositories::PostgresRepo;
 use routes::create_routes;
 use services::auth::AuthService;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tower_http::{cors::CorsLayer, services::ServeDir};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -36,7 +35,28 @@ pub struct AppState {
     pub config: Config,
     pub auth_service: AuthService,
 }
-
+fn configure_cors() -> CorsLayer {
+    CorsLayer::new()
+        .allow_origin([
+            "https://nextlevelcode-blog.vercel.app".parse().unwrap(),
+        ])
+        .allow_methods(vec![
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers(vec![
+            AUTHORIZATION,
+            CONTENT_TYPE,
+            ACCEPT,
+            HeaderName::from_static("X-Api-Key"),
+        ])
+        .allow_credentials(true)
+        .expose_headers(vec![CONTENT_DISPOSITION])
+        .max_age(std::time::Duration::from_secs(86400)) // 24 horas
+}
 async fn require_api_key(req: Request<Body>, next: Next) -> std::result::Result<Response, StatusCode> {
     // Se o método for OPTIONS, pule a autenticação
     if req.method() == axum::http::Method::OPTIONS {
@@ -86,11 +106,6 @@ async fn main() {
 
     let db_blog = PostgresRepo::new(pool.clone());
 
-    let cors = CorsLayer::new()
-        .allow_origin(env::var("ALLOW_ORIGIN").expect("ALLOW_ORIGIN must be set").parse::<HeaderValue>().unwrap())
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
-        .allow_credentials(true)
-        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE]);
 
     let app_state = AppState {
         api_key,
@@ -99,7 +114,7 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state.clone())).layer(cors).layer(from_fn_with_state(app_state, require_api_key));
+    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(TraceLayer::new_for_http()).layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
         "[::]:{}",
