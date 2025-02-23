@@ -36,7 +36,7 @@ pub struct AppState {
     pub auth_service: AuthService,
 }
 fn configure_cors() -> CorsLayer {
-    let x_api_key = HeaderName::from_static("X-Api-Key");
+    let x_api_key = HeaderName::from_static("x-api-key");
 
     CorsLayer::new()
         .allow_origin([
