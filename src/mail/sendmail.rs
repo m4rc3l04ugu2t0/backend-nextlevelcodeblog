@@ -13,7 +13,6 @@ pub async fn send_email(
     template_path: &str,
     placeholders: &[(String, String)],
 ) -> Result<()> {
-    info!("{}", to);
     let smtp_username = var("SMTP_USERNAME").expect("SMTP_USERNAME must be set");
     let smtp_password = var("SMTP_PASSWORD").expect("SMTP_PASSWORD must be set");
     let smtp_server = var("SMTP_SERVER").expect("SMTP_SERVER must be set");
