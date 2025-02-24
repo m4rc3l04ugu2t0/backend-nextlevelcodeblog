@@ -40,7 +40,7 @@ fn configure_cors() -> CorsLayer {
 
     CorsLayer::new()
         .allow_origin([
-            "http://localhost:3000"
+            "https://nextlevelcode-blog.vercel.app"
                 .parse()
                 .expect("Invalid origin format"),
         ])
@@ -130,7 +130,7 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(from_fn_with_state(app_state, require_api_key));
+    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(TraceLayer::new_for_http()).layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
         "[::]:{}",
