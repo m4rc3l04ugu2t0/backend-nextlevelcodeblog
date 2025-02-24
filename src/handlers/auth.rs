@@ -66,6 +66,7 @@ pub async fn login(
     Extension(app_state): Extension<Arc<AppState>>,
     Json(user): Json<LoginUserDto>,
 ) -> Result<impl IntoResponse> {
+    info!("{}", user.password);
     user.validate()?;
 
     let token = app_state
