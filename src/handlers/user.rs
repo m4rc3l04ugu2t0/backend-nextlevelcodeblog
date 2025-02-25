@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query},
+    extract::Path,
     http::StatusCode,
     middleware,
     response::IntoResponse,
     routing::{delete, get, put},
     Extension, Json, Router,
 };
-use serde::Deserialize;
-use tracing::info;
 use validator::Validate;
 
 use crate::{
@@ -17,11 +15,11 @@ use crate::{
     models::{
         response::Response,
         users::{
-            DeleteUser, FilterUserDto, NameUpdateDto, UserData, UserPasswordUpdateDto,
+             FilterUserDto, NameUpdateDto, UserData, UserPasswordUpdateDto,
             UserResponseDto, UserRole,
         },
     },
-    AppState, Error, Result,
+    AppState,  Result,
 };
 
 pub fn users_handler() -> Router {

@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use sqlx::PgPool;
-use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    models::users::{NameUpdateDto, User, UserRole},
-    Error, Result,
+    models::users::{ User, UserRole},
+     Result,
 };
 
 use super::PostgresRepo;
@@ -50,7 +48,6 @@ impl UserRepository for PostgresRepo {
         token: Option<&str>,
     ) -> Result<Option<User>> {
         let mut user: Option<User> = None;
-        info!("{:?}", user);
 
         if let Some(user_id) = user_id {
             user = sqlx::query_as!(
@@ -150,7 +147,7 @@ impl UserRepository for PostgresRepo {
             user_id
         )
         .execute(&self.pool)
-        .await;
+        .await?;
 
         Ok(())
     }

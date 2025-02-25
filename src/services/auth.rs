@@ -1,4 +1,4 @@
-use std::{env, sync::Arc};
+use std::env;
 
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
@@ -7,19 +7,16 @@ use argon2::{
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    errors::ValidationResponse,
     mail::mails::{send_forgot_password_email, send_welcome_email},
     models::{
         news_post::{
             CreateNewsPostDto, NewsPost, PostComment, PostCommentWithAuthor,
-            PostCommentWithComments, UpdateNewsPost,
+            PostCommentWithComments,
         },
-        query::{CreateCategory, CreateVideo, ReturnVideo, Video, VideoDto},
-        response::Response,
+        query::{CreateCategory,  ReturnVideo, Video},
         users::{FilterUserDto, NameUpdateDto, User, UserPasswordUpdateDto},
     },
     repositories::{news_post_repo::NewsPostsRepository, user_repo::UserRepository, PostgresRepo},
@@ -57,7 +54,7 @@ impl AuthService {
             .is_some()
         {
             return Err(Error::BadRequest(
-                "Email already exists.".to_string(),
+                "Unavailable.".to_string(),
             ));
         }
 
@@ -88,11 +85,11 @@ impl AuthService {
             .get_user(None, None, Some(email), None)
             .await?
             .ok_or(Error::BadRequest(
-                "User not found, create an account!".to_string(),
+                "Unavailable.".to_string(),
             ))?;
 
         if !user.verified {
-            return Err(Error::BadRequest("Check your e-email!".to_string()));
+            return Err(Error::BadRequest("Unavailable.".to_string()));
         }
 
         let argon2 = Argon2::default();
@@ -136,7 +133,6 @@ impl AuthService {
             }
         }
         self.user_repo.verifed_token(&token).await?;
-        // self.user_repo.verifed_token(&user.verification_token).await?;
         send_welcome_email(&user.email, &user.name).await?;
 
         self.generate_token(user.id, self.jwt_expiration)
@@ -148,7 +144,7 @@ impl AuthService {
             .get_user(None, None, Some(&email), None)
             .await?;
 
-        let user = user.ok_or(Error::BadRequest("E-mail inválido!".to_string()))?;
+        let user = user.ok_or(Error::BadRequest("Unavailable.".to_string()))?;
 
         let verification_token = Uuid::now_v7().to_string();
         let expires_at = Utc::now() + Duration::minutes(30);
@@ -167,7 +163,7 @@ impl AuthService {
 
         let email_sent = send_forgot_password_email(&user.email, &reset_link, &user.name).await;
 
-        if let Err(e) = email_sent {
+        if let Err(_) = email_sent {
             return Err(Error::InternalServerError);
         }
 
@@ -242,7 +238,6 @@ impl AuthService {
         user: &User,
         user_update: NameUpdateDto,
     ) -> Result<FilterUserDto> {
-        let user_id = uuid::Uuid::parse_str(&user.id.to_string()).unwrap();
 
         let argon2 = Argon2::default();
         let parsed_hash =

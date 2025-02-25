@@ -11,7 +11,6 @@ use axum::{
 use image::{ImageFormat, ImageReader};
 use serde::Deserialize;
 use tower_http::{services::ServeDir, trace::TraceLayer};
-use tracing::info;
 
 use crate::{
     handlers::{auth::auth_handler, posts::posts_handler, user::users_handler},
@@ -23,34 +22,28 @@ use crate::{
 struct ImageParams {
     url: String,
     w: Option<u32>,
-    q: Option<u8>,
 }
 
 async fn handle_image_optimization(
     Query(params): Query<ImageParams>,
 ) -> Result<impl IntoResponse, (StatusCode, String)> {
-    // 1. Parse and validate URL
     let decoded_url = urlencoding::decode(&params.url)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid URL encoding".to_string()))?;
 
-    // 2. Extract local file path from URL
     let file_path = PathBuf::from(
         decoded_url
             .strip_prefix("http://localhost:8080/api/images/")
             .ok_or((StatusCode::BAD_REQUEST, "Invalid image URL".to_string()))?,
     );
 
-    // 3. Security check
     if file_path.components().count() != 2 || file_path.is_absolute() {
         return Err((StatusCode::FORBIDDEN, "Invalid file path".to_string()));
     }
 
-    // 4. Load image from filesystem
     let image_bytes = tokio::fs::read(format!("src/assets/{}", file_path.display()))
         .await
         .map_err(|e| (StatusCode::NOT_FOUND, format!("File not found: {}", e)))?;
 
-    // 5. Process image
     let mut img = ImageReader::new(Cursor::new(image_bytes))
         .with_guessed_format()
         .map_err(|e| {
@@ -67,7 +60,6 @@ async fn handle_image_optimization(
             )
         })?;
 
-    // 6. Resize if width specified
     if let Some(width) = params.w {
         img = img.resize(
             width,
@@ -76,7 +68,6 @@ async fn handle_image_optimization(
         );
     }
 
-    // 7. Convert to WebP
     let mut output_buf = Cursor::new(Vec::new());
     img.write_to(&mut output_buf, ImageFormat::WebP)
         .map_err(|e| {
@@ -86,7 +77,6 @@ async fn handle_image_optimization(
             )
         })?;
 
-    // 8. Set response headers
     let mut headers = HeaderMap::new();
     headers.insert("content-type", "image/webp".parse().unwrap());
     headers.insert(

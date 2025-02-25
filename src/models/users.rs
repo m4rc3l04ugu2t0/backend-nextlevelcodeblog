@@ -35,12 +35,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateUserDto {
-    pub name: String,
-    pub email: String,
-    pub password: String,
-}
+
 
 #[derive(Validate, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct RegisterUserDto {

@@ -6,11 +6,9 @@ use axum::{
     Json,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tracing::{error, info};
+use tracing::error;
 use validator::ValidationErrors;
 
-use crate::models::response::Response as ServerResponse;
 
 pub type Result<T> = core::result::Result<T, Error>;
 

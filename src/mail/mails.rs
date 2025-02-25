@@ -26,12 +26,12 @@ fn create_verification_link(base_url: &str, token: &str) -> String {
 pub async fn send_welcome_email(to_email: &str, username: &str) -> Result<()> {
     let subject = "Welcome to Application";
     let template_path = "src/mail/templates/Welcome-email.html";
-    let twitter_url = "x.com/next_level_code".to_string();
+    let x_url = "x.com/next_level_code".to_string();
     let github_url= "github.com/m4rc3l04ugu2t0".to_string();
     let placeholders = vec![
         ("{{username}}".to_string(), username.to_string()),
-        ("{{twitter_url}}".to_string(), username.to_string()),
-        ("{{github_url}}".to_string(), username.to_string())
+        ("{{x_url}}".to_string(), x_url.to_string()),
+        ("{{github_url}}".to_string(), github_url.to_string())
         ];
 
     send_email(to_email, subject, template_path, &placeholders).await

@@ -1,6 +1,4 @@
 use async_trait::async_trait;
-use chrono::Utc;
-use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
@@ -9,7 +7,7 @@ use crate::{
             CommentWithAuthor, NewsPost, PostComment, PostCommentWithAuthor,
             PostCommentWithComments,
         },
-        query::{CreateCategory, CreateVideo, ReturnVideo, Video, VideoDto},
+        query::{CreateCategory,  ReturnVideo, Video, },
     },
     Result,
 };

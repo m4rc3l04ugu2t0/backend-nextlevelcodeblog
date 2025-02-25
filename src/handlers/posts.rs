@@ -7,12 +7,11 @@ use axum::{
     routing::{delete, get, post, put},
     Extension, Json, Router,
 };
-use serde_json::Value;
 
 use crate::{
     models::{
         news_post::{CreateNewsPostDto, PostCommentDto, UpdateNewsPost, UpdatePostCommentDto},
-        query::{CategoryDto, CategoryName, CreateCategory, UpdateVideoDto, VideoDto},
+        query::{CategoryDto, CategoryName,  UpdateVideoDto, VideoDto},
     },
     AppState, Result,
 };
@@ -91,7 +90,7 @@ async fn update_video(
     Path(video_id): Path<String>,
     Json(update_video): Json<UpdateVideoDto>,
 ) -> Result<impl IntoResponse> {
-    let updated_video = app_state
+   app_state
         .auth_service
         .update_video(
             &video_id,
@@ -131,7 +130,7 @@ async fn delete_video(
     Path(video_id): Path<String>,
 ) -> Result<impl IntoResponse> {
     app_state.auth_service.delete_video(&video_id).await?;
-    Ok((StatusCode::NO_CONTENT))
+    Ok(StatusCode::NO_CONTENT)
 }
 
 async fn add_category_to_video(
@@ -193,7 +192,7 @@ async fn delete_post(
     Extension(app_state): Extension<Arc<AppState>>,
     Path(post_id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    let deleted_post = app_state.auth_service.delete_news_post(&post_id).await?;
+     app_state.auth_service.delete_news_post(&post_id).await?;
 
     Ok((StatusCode::NO_CONTENT, "successes"))
 }

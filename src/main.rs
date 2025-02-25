@@ -1,10 +1,9 @@
-#![allow(unused)]
 use std::{env, sync::Arc};
 
 use axum::{
     body::Body, extract::Request, http::{
-        header::{ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE}, HeaderName, HeaderValue, Method, StatusCode
-    }, middleware::{from_fn_with_state, Next}, response::Response, routing::get_service, Extension, Router
+        header::{ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE}, HeaderName,  Method, StatusCode
+    }, middleware::{from_fn_with_state, Next}, response::Response,
 };
 use config::Config;
 use dotenv::dotenv;
@@ -12,7 +11,7 @@ use repositories::PostgresRepo;
 use routes::create_routes;
 use services::auth::AuthService;
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
+use tower_http::cors::CorsLayer;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
@@ -40,7 +39,7 @@ fn configure_cors() -> CorsLayer {
 
     CorsLayer::new()
         .allow_origin([
-            "https://nextlevelcode-blog.vercel.app"
+            "http://localhost:3000"
                 .parse()
                 .expect("Invalid origin format"),
         ])
@@ -55,7 +54,7 @@ fn configure_cors() -> CorsLayer {
             AUTHORIZATION,
             CONTENT_TYPE,
             ACCEPT,
-            x_api_key, // Usa a variável criada
+            x_api_key,
         ])
         .allow_credentials(true)
         .expose_headers(vec![CONTENT_DISPOSITION])
@@ -130,7 +129,7 @@ async fn main() {
         auth_service: AuthService::new(db_blog, config.jwt_secret.clone(), config.jwt_maxage),
     };
 
-    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(TraceLayer::new_for_http()).layer(from_fn_with_state(app_state, require_api_key));
+    let app = create_routes(Arc::new(app_state.clone())).layer(configure_cors()).layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
         "[::]:{}",
