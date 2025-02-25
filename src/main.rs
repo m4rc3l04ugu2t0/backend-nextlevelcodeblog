@@ -39,7 +39,7 @@ fn configure_cors() -> CorsLayer {
 
     CorsLayer::new()
         .allow_origin([
-            "http://localhost:3000"
+            "https://nextlevelcode-blog.vercel.app"
                 .parse()
                 .expect("Invalid origin format"),
         ])
