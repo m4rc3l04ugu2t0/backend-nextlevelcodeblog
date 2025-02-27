@@ -12,7 +12,7 @@ pub async fn send_verification_email(to_email: &str, username: &str, token: &str
         env::var("FRONT_URL").expect("FRONT_URL must be set")
     );
     let verification_link = create_verification_link(base_url, token);
-    let login_url = "http://localhost:3000/auth/login".to_string();
+    let login_url = env::var("FRONT_URL").expect("FRONT_URL must be set");
     let placeholders = vec![
         ("{{username}}".to_string(), username.to_string()),
         ("{{verification_link}}".to_string(), verification_link),
