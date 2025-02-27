@@ -1,16 +1,12 @@
-use std::{collections::HashMap, fmt};
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tracing::{error, info};
+use std::{collections::HashMap, fmt};
+use tracing::error;
 use validator::ValidationErrors;
-
-use crate::models::response::Response as ServerResponse;
 
 pub type Result<T> = core::result::Result<T, Error>;
 

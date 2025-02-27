@@ -29,23 +29,23 @@ async fn quick_dev() -> Result<()> {
     .print()
     .await?;
 
+    // hc.do_get("/auth/verify?token=0194b49c-87a4-72e2-9e7b-9b9a3bde3d48")
+    //     .await?
+    //     .print()
+    //     .await?;
+
     hc.do_post(
         "/posts/create_post",
         json!({
-          "user_id": "0194e1f7-c369-7c31-9440-45654eabb899",
-          "title": "Bitcoin",
+          "url": "https://site.com",
           "description": "Let's create a cold wallet of Bitcoin",
-          "cover_image": "http://localhost:8080/api/images/SetUpBitcoinWallet/cover.webp",
+          "author_name": "John",
         }),
     )
     .await?
     .print()
     .await?;
 
-    // hc.do_get("/auth/verify?token=0194b49c-87a4-72e2-9e7b-9b9a3bde3d48")
-    //     .await?
-    //     .print()
-    //     .await?;
 
     // hc.do_post("/auth/forgot-password", json!({"email": "testee@gmal.com"}))
     //     .await?
