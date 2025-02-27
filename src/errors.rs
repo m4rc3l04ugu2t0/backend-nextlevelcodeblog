@@ -1,14 +1,13 @@
-use std::{collections::HashMap, fmt};
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
+
+use std::{collections::HashMap, fmt};
 use tracing::error;
 use validator::ValidationErrors;
-
 
 pub type Result<T> = core::result::Result<T, Error>;
 

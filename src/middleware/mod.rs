@@ -1,12 +1,6 @@
 use std::sync::Arc;
 
-use axum::{
-    extract::Request,
-    http::header,
-    middleware::Next,
-    response::IntoResponse,
-    Extension,
-};
+use axum::{extract::Request, http::header, middleware::Next, response::IntoResponse, Extension};
 use axum_extra::extract::CookieJar;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -45,17 +39,16 @@ pub async fn auth(mut req: Request, next: Next) -> Result<impl IntoResponse> {
     let token = cookie.ok_or(Error::Unauthorized)?;
 
     let token_details = app_state
-        .auth_service
+        .users_service
         .decode_token(token)
         .map_err(|_| Error::Unauthorized)?;
 
     let user_id = Uuid::parse_str(&token_details.to_string()).map_err(|_| Error::Unauthorized)?;
 
     let user = app_state
-        .auth_service
+        .users_service
         .get_user(Some(user_id), None, None, None)
         .await?;
-
 
     req.extensions_mut().insert(JWTAuthMiddeware { user });
 

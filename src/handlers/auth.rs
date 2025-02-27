@@ -1,12 +1,18 @@
-use std::sync::Arc;
+use std::{env, sync::Arc};
 
 use axum::{
+    body::Body,
     extract::Query,
-    http::{header, HeaderMap, StatusCode},
+    http::{
+        header::{self, ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE},
+        HeaderMap, HeaderName, Method, Request, StatusCode,
+    },
+    middleware::Next,
     routing::{get, post},
     Extension, Json, Router,
 };
 use tower_cookies::Cookie;
+use tower_http::cors::CorsLayer;
 use validator::Validate;
 
 use crate::{
@@ -47,6 +53,7 @@ pub async fn register(
     let token = user
         .verification_token
         .ok_or(Error::BadRequest("Invalid data".to_string()))?;
+
     send_verification_email(&user.email, &user.name, &token).await?;
 
     Ok((
@@ -155,4 +162,49 @@ pub async fn reset_password(
     };
 
     Ok(Json(response))
+}
+
+pub fn configure_cors() -> CorsLayer {
+    let x_api_key = HeaderName::from_static("x-api-key");
+
+    CorsLayer::new()
+        .allow_origin(["https://nextlevelcode-blog.vercel.app"
+            .parse()
+            .expect("Invalid origin format")])
+        .allow_methods(vec![
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers(vec![AUTHORIZATION, CONTENT_TYPE, ACCEPT, x_api_key])
+        .allow_credentials(true)
+        .expose_headers(vec![CONTENT_DISPOSITION])
+        .max_age(std::time::Duration::from_secs(86400))
+}
+
+pub async fn require_api_key(
+    req: Request<Body>,
+    next: Next,
+) -> std::result::Result<axum::response::Response, StatusCode> {
+    if req.method() == Method::OPTIONS {
+        return Ok(next.run(req).await);
+    }
+
+    let headers = req.headers();
+    let api_key_header = HeaderName::from_static("x-api-key");
+
+    match headers.get(&api_key_header) {
+        Some(api_key_value) => {
+            let stored_key = env::var("API_KEY").unwrap_or_default();
+
+            if api_key_value.to_str().unwrap_or("") == stored_key {
+                Ok(next.run(req).await)
+            } else {
+                Err(StatusCode::UNAUTHORIZED)
+            }
+        }
+        None => Err(StatusCode::UNAUTHORIZED),
+    }
 }

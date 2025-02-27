@@ -1,3 +1,4 @@
 pub mod auth;
-pub mod posts;
+pub mod news_post;
 pub mod user;
+pub mod videos;
