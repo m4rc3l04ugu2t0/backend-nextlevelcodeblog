@@ -1,15 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query},
+    extract::Path,
     http::StatusCode,
     middleware,
     response::IntoResponse,
     routing::{delete, get, put},
     Extension, Json, Router,
 };
-use serde::Deserialize;
-use tracing::info;
 use validator::Validate;
 
 use crate::{
@@ -17,11 +15,12 @@ use crate::{
     models::{
         response::Response,
         users::{
-            DeleteUser, FilterUserDto, NameUpdateDto, UserData, UserPasswordUpdateDto,
-            UserResponseDto, UserRole,
+
+            FilterUserDto, NameUpdateDto, UserData, UserPasswordUpdateDto, UserResponseDto,
+            UserRole,
         },
     },
-    AppState, Error, Result,
+    AppState, Result,
 };
 
 pub fn users_handler() -> Router {
@@ -64,7 +63,7 @@ async fn delete_user(
     Extension(app_state): Extension<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<impl IntoResponse> {
-    app_state.auth_service.delete_user(&user_id).await?;
+    app_state.users_service.delete_user(&user_id).await?;
 
     Ok((StatusCode::NO_CONTENT, "Deleted"))
 }
@@ -80,17 +79,14 @@ pub async fn update_user_name(
 ) -> Result<impl IntoResponse> {
     user_update.validate()?;
 
-    let user_updated = app_state
-        .auth_service
+     app_state
+        .users_service
         .update_username(&user.user, user_update)
         .await?;
 
-    let response = UserResponseDto {
-        data: UserData { user: user_updated },
-        status: "success".to_string(),
-    };
 
-    Ok(Json(response))
+
+    Ok(StatusCode::OK)
 }
 
 async fn update_user_role() {
@@ -105,7 +101,7 @@ pub async fn update_user_password(
     user_update.validate()?;
 
     app_state
-        .auth_service
+        .users_service
         .update_user_password(&user.user, user_update)
         .await?;
 

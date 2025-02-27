@@ -1,27 +1,15 @@
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
-use sqlx::PgPool;
-use tracing::info;
 use uuid::Uuid;
 
 use crate::{
-    models::users::{NameUpdateDto, User, UserRole},
-    Error, Result,
+    models::users::{User, UserRole},
+    Result,
 };
 
 use super::PostgresRepo;
 
 #[async_trait]
 pub trait UserRepository: Send + Sync {
-    async fn create_user(
-        &self,
-        name: String,
-        email: String,
-        password: String,
-        verification_token: String,
-        token_expires_at: Option<DateTime<Utc>>,
-    ) -> Result<User>;
-    async fn verifed_token(&self, token: &str) -> Result<()>;
     async fn get_user(
         &self,
         user_id: Option<Uuid>,
@@ -29,13 +17,8 @@ pub trait UserRepository: Send + Sync {
         email: Option<&str>,
         token: Option<&str>,
     ) -> Result<Option<User>>;
-    async fn add_verifed_token(
-        &self,
-        user_id: Uuid,
-        token_expires_at: DateTime<Utc>,
-        token: &str,
-    ) -> Result<()>;
-    async fn update_password(&self, user_id: Uuid, password: &str) -> Result<()>;
+
+    async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()>;
     async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User>;
     async fn delete_user(&self, user_id: Uuid) -> Result<()>;
 }
@@ -50,7 +33,6 @@ impl UserRepository for PostgresRepo {
         token: Option<&str>,
     ) -> Result<Option<User>> {
         let mut user: Option<User> = None;
-        info!("{:?}", user);
 
         if let Some(user_id) = user_id {
             user = sqlx::query_as!(
@@ -86,75 +68,21 @@ impl UserRepository for PostgresRepo {
         Ok(user)
     }
 
-    async fn create_user(
-        &self,
-        name: String,
-        email: String,
-        password: String,
-        verification_token: String,
-        token_expires_at: Option<DateTime<Utc>>, // Make sure this is Option
-    ) -> Result<User> {
-        let user = sqlx::query_as!(
-            User,
-            r#"
-            INSERT INTO users (id, name, email, password, verification_token, token_expires_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
-            "#,
-            Uuid::now_v7(),
-            name.into(),
-            email.into(),
-            password.into(),
-            verification_token.into(),
-            token_expires_at // This can now be an Option<DateTime<Utc>>
-        )
-        .fetch_one(&self.pool)
-        .await?;
-
-        Ok(user)
-    }
-
-    async fn verifed_token(&self, token: &str) -> Result<()> {
-        sqlx::query!(
-            r#"
-        UPDATE users
-        SET verified = true,
-            updated_at = Now(),
-            verification_token = NULL,
-            token_expires_at = NULL
-        WHERE verification_token = $1
-        "#,
-            token
-        )
-        .execute(&self.pool)
-        .await?;
-
-        Ok(())
-    }
-
-    async fn add_verifed_token(
-        &self,
-        user_id: Uuid,
-        token_expires_at: DateTime<Utc>,
-        token: &str,
-    ) -> Result<()> {
-        sqlx::query!(
+    async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()> {
+        let _ = sqlx::query!(
             r#"
             UPDATE users
-            SET verification_token = $1,
-                token_expires_at = $2
-            WHERE id = $3
+            SET password = $1, updated_at = Now()
+            WHERE id = $2
             "#,
-            token,
-            token_expires_at,
+            new_password,
             user_id
         )
         .execute(&self.pool)
-        .await;
+        .await?;
 
         Ok(())
     }
-
     async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User> {
         let user = sqlx::query_as!(
             User,
@@ -171,22 +99,6 @@ impl UserRepository for PostgresRepo {
         .await?;
 
         Ok(user)
-    }
-
-    async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()> {
-        let _ = sqlx::query!(
-            r#"
-            UPDATE users
-            SET password = $1, updated_at = Now()
-            WHERE id = $2
-            "#,
-            new_password,
-            user_id
-        )
-        .execute(&self.pool)
-        .await;
-
-        Ok(())
     }
 
     async fn delete_user(&self, user_id: Uuid) -> Result<()> {

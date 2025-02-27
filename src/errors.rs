@@ -1,16 +1,12 @@
-use std::{collections::HashMap, fmt};
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::json;
-use tracing::{error, info};
-use validator::ValidationErrors;
 
-use crate::models::response::Response as ServerResponse;
+use std::{collections::HashMap, fmt};
+use validator::ValidationErrors;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
@@ -83,28 +79,24 @@ impl IntoResponse for Error {
 
 impl From<sqlx::Error> for Error {
     fn from(err: sqlx::Error) -> Self {
-        error!("Database error: {:?}", err);
         Self::DatabaseError(err)
     }
 }
 
 impl From<argon2::password_hash::Error> for Error {
     fn from(err: argon2::password_hash::Error) -> Self {
-        error!("Invalid hash format");
         Self::InvalidHashFormat(err)
     }
 }
 
 impl From<ValidationErrors> for Error {
     fn from(err: ValidationErrors) -> Self {
-        error!("Invalid hash format");
         Self::Validation(err)
     }
 }
 
 impl From<std::string::String> for Error {
     fn from(err: std::string::String) -> Self {
-        error!("Invalid hash format");
         Self::ReadString(err)
     }
 }

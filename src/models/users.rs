@@ -11,7 +11,7 @@ pub enum UserRole {
 }
 
 impl UserRole {
-    pub fn to_str(&self) -> &str {
+    pub fn to_str(self) ->&'static str {
         match self {
             Self::Admin => "admin",
             Self::User => "user",
@@ -27,20 +27,14 @@ pub struct User {
     pub password: String,
     pub role: UserRole,
     pub verified: bool,
-    pub verification_token: Option<String>, // Changed to Option
-    pub token_expires_at: Option<DateTime<Utc>>, // Changed to Option
+    pub verification_token: Option<String>,
+    pub token_expires_at: Option<DateTime<Utc>>,
     #[serde(rename = "createdAt")]
     pub created_at: DateTime<Utc>,
     #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct CreateUserDto {
-    pub name: String,
-    pub email: String,
-    pub password: String,
-}
 
 #[derive(Validate, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct RegisterUserDto {
@@ -107,7 +101,7 @@ impl FilterUserDto {
         }
     }
 
-    pub fn filter_users(user: &[User]) -> Vec<FilterUserDto> {
+    pub fn _filter_users(user: &[User]) -> Vec<FilterUserDto> {
         user.iter().map(FilterUserDto::filter_user).collect()
     }
 }

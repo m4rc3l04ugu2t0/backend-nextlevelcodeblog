@@ -28,7 +28,7 @@ pub struct CreateVideo {
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize)]
-pub struct ReturnVideo {
+pub struct ResponseVideo {
     pub title: String,
     pub duration: String,
     pub views: Option<i32>,
