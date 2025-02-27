@@ -1,7 +1,6 @@
 
 use axum::middleware::from_fn_with_state;
 use config::Config;
-use dotenv::dotenv;
 use handlers::auth::{configure_cors, require_api_key};
 use repositories::PostgresRepo;
 use routes::create_routes;
@@ -11,9 +10,6 @@ use services::{
 use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use std::{env, sync::Arc};
-use tower_http::trace::TraceLayer;
-use tracing::info;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 pub use self::errors::{Error, Result};
 
@@ -40,13 +36,6 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::registry()
-        .with(EnvFilter::from_default_env())
-        .with(tracing_subscriber::fmt::layer().pretty())
-        .init();
-
-    dotenv().ok();
-
     let config = Config::init();
 
     let api_key = env::var("API_KEY").unwrap_or_else(|_| {
@@ -90,7 +79,6 @@ async fn main() {
 
     let app = create_routes(Arc::new(app_state.clone()))
         .layer(configure_cors())
-        .layer(TraceLayer::new_for_http())
         .layer(from_fn_with_state(app_state, require_api_key));
 
     let listener = tokio::net::TcpListener::bind(format!(
@@ -99,6 +87,5 @@ async fn main() {
     ))
     .await
     .unwrap();
-    info!("{} - {:?}", "LISTENING", listener.local_addr());
     axum::serve(listener, app).await.unwrap();
 }
