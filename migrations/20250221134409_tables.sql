@@ -1,9 +1,11 @@
 -- Add migration script here
--- CREATE TYPE user_role AS ENUM ('admin', 'user');
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
+-- User roles enum
+CREATE TYPE user_role AS ENUM ('user', 'admin');
 
+-- Users table
 CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY,
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(100) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
     verified BOOLEAN NOT NULL DEFAULT FALSE,
@@ -15,7 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
--- CREATE INDEX users_email_idx ON users (email);
+-- Indexes
+CREATE INDEX users_email_idx ON users (email);
+CREATE INDEX users_verification_token_idx ON users (verification_token);
+CREATE INDEX users_name_trgm_idx ON users USING GIN (name gin_trgm_ops);
 
 CREATE TABLE news_posts (
     id UUID PRIMARY KEY,
@@ -66,3 +71,5 @@ CREATE TABLE video_categories (
 -- INSERT INTO videos (id, title, youtube_id, duration, views)
 -- VALUES ('019525ae-cf13-71d3-a7ac-e2edde5c7adb', 'Título Teste', 'yt12345', '10:00', 100)
 -- RETURNING id, title, youtube_id, duration, views;
+SELECT * FROM information_schema.columns
+WHERE table_name = 'users' AND column_name = 'role';

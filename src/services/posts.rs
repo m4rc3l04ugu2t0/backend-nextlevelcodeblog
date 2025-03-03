@@ -1,7 +1,5 @@
 use crate::{
-    models::news_post::{
-        CreateNewsPostDto, NewsPost, PostCommentWithAuthor, PostCommentWithComments,
-    },
+    models::news_post::{CreateNewsPostDto, NewsPost, PostCommentWithComments},
     repositories::{news_post_repo::NewsPostsRepository, PostgresRepo},
     Result,
 };
@@ -26,8 +24,7 @@ impl NewsPostsService {
         news_post: CreateNewsPostDto,
         author_id: &str,
     ) -> Result<()> {
-         self
-            .repo
+        self.repo
             .create_news_post(
                 &news_post.url,
                 &news_post.description,
@@ -45,8 +42,7 @@ impl NewsPostsService {
         update_news_post_url: Option<&str>,
         update_news_post_description: Option<&str>,
     ) -> Result<()> {
-         self
-            .repo
+        self.repo
             .update_news_post(
                 news_post_id,
                 update_news_post_url,
@@ -74,12 +70,6 @@ impl NewsPostsService {
         Ok(posts_with_comments)
     }
 
-    pub async fn get_comments_for_post(&self, post_id: &str) -> Result<Vec<PostCommentWithAuthor>> {
-        let comments = self.repo.get_comments_for_post(post_id).await?;
-
-        Ok(comments)
-    }
-
     pub async fn create_comment(
         &self,
         post_id: &str,
@@ -87,19 +77,14 @@ impl NewsPostsService {
         author_id: &str,
         author_name: &str,
     ) -> Result<()> {
-         self
-            .repo
+        self.repo
             .create_comment(post_id, content, author_id, author_name)
             .await?;
         Ok(())
     }
 
-    pub async fn update_comment(
-        &self,
-        comment_id: &str,
-        content: Option<&str>,
-    ) -> Result<()> {
-         self.repo.update_comment(comment_id, content).await?;
+    pub async fn update_comment(&self, comment_id: &str, content: Option<&str>) -> Result<()> {
+        self.repo.update_comment(comment_id, content).await?;
         Ok(())
     }
 

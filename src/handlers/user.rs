@@ -78,12 +78,10 @@ pub async fn update_user_name(
 ) -> Result<impl IntoResponse> {
     user_update.validate()?;
 
-     app_state
+    app_state
         .users_service
         .update_username(&user.user, user_update)
         .await?;
-
-
 
     Ok(StatusCode::OK)
 }

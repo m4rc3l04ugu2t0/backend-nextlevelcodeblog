@@ -149,10 +149,9 @@ impl AuthService {
 
         let email_sent = send_forgot_password_email(&user.email, &reset_link, &user.name).await;
 
-       if email_sent.is_err() {
-
-        return Err(Error::InternalServerError)
-       }
+        if email_sent.is_err() {
+            return Err(Error::InternalServerError);
+        }
 
         Ok(())
     }

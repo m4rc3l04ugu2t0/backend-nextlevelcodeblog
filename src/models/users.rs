@@ -11,7 +11,7 @@ pub enum UserRole {
 }
 
 impl UserRole {
-    pub fn to_str(self) ->&'static str {
+    pub fn to_str(self) -> &'static str {
         match self {
             Self::Admin => "admin",
             Self::User => "user",
@@ -25,7 +25,7 @@ pub struct User {
     pub name: String,
     pub email: String,
     pub password: String,
-    pub role: UserRole,
+    pub role: UserRole,  // Ensure this field exists
     pub verified: bool,
     pub verification_token: Option<String>,
     pub token_expires_at: Option<DateTime<Utc>>,

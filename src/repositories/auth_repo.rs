@@ -2,10 +2,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::{
-    models::users::{User, UserRole},
-    Result,
-};
+use crate::{models::users::User, Result};
 
 use super::PostgresRepo;
 
@@ -31,6 +28,7 @@ pub trait AuthRepository: Send + Sync {
 
 #[async_trait]
 impl AuthRepository for PostgresRepo {
+
     async fn create_user(
         &self,
         name: String,
@@ -39,22 +37,35 @@ impl AuthRepository for PostgresRepo {
         verification_token: String,
         token_expires_at: Option<DateTime<Utc>>,
     ) -> Result<User> {
-        let user = sqlx::query_as!(
-            User,
+        tracing::debug!("Executing query: INSERT INTO users ...");
+        tracing::debug!("Query parameters: name = {}, email = {}", name, email);
+
+        let user = sqlx::query_as::<_, User>(
             r#"
             INSERT INTO users (id, name, email, password, verification_token, token_expires_at)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+            RETURNING
+                id,
+                name,
+                email,
+                password,
+                verified,
+                created_at,
+                updated_at,
+                verification_token,
+                token_expires_at,
+                role
             "#,
-            Uuid::now_v7(),
-            name.into(),
-            email.into(),
-            password.into(),
-            verification_token.into(),
-            token_expires_at
         )
+        .bind(Uuid::now_v7())
+        .bind(name)
+        .bind(email)
+        .bind(password)
+        .bind(verification_token)
+        .bind(token_expires_at)
         .fetch_one(&self.pool)
         .await?;
+
 
         Ok(user)
     }

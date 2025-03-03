@@ -46,7 +46,6 @@ async fn quick_dev() -> Result<()> {
     .print()
     .await?;
 
-
     // hc.do_post("/auth/forgot-password", json!({"email": "testee@gmal.com"}))
     //     .await?
     //     .print()
