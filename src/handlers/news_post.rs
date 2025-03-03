@@ -27,7 +27,6 @@ pub fn news_posts_handler() -> Router {
         .route("/create-post/{id}", post(create_post))
         .route("/update-post/{id}", put(update_post))
         .route("/delete-post/{id}", delete(delete_post))
-        .route("/comments", get(comments))
         .route("/create-comment/{id}", post(create_comment))
         .route("/update-comment/{id}", put(update_comment))
         .route("/delete-comment/{id}", delete(delete_comment))
@@ -66,7 +65,7 @@ async fn create_post(
     Path(author_id): Path<String>,
     Json(news_post): Json<CreateNewsPostDto>,
 ) -> Result<impl IntoResponse> {
-     app_state
+    app_state
         .news_post_service
         .create_news_post(news_post, &author_id)
         .await?;
@@ -100,18 +99,6 @@ async fn delete_post(
         .await?;
 
     Ok((StatusCode::NO_CONTENT, "successes"))
-}
-
-async fn comments(
-    Extension(app_state): Extension<Arc<AppState>>,
-    Path(post_id): Path<String>,
-) -> Result<impl IntoResponse> {
-    let comments = app_state
-        .news_post_service
-        .get_comments_for_post(&post_id)
-        .await?;
-
-    Ok((StatusCode::OK, Json(comments)))
 }
 
 async fn create_comment(

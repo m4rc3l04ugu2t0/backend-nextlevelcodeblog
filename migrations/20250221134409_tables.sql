@@ -1,5 +1,5 @@
 -- Add migration script here
--- CREATE TYPE user_role AS ENUM ('admin', 'user');
+CREATE TYPE user_role AS ENUM ('admin', 'user');
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
--- CREATE INDEX users_email_idx ON users (email);
+CREATE INDEX users_email_idx ON users (email);
 
 CREATE TABLE news_posts (
     id UUID PRIMARY KEY,

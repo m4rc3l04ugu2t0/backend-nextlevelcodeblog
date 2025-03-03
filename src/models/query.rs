@@ -14,8 +14,8 @@ pub struct Video {
     pub title: String,
     pub youtube_id: String,
     pub duration: String,
-    pub views: Option<i32>,
-    pub categories: Option<Vec<String>>, // Categorias como um vetor de strings
+    pub views: i32,
+    pub categories: Vec<String>, // Categorias como um vetor de strings
 }
 
 #[derive(Debug, sqlx::FromRow, Deserialize, Serialize)]

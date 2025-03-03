@@ -120,7 +120,7 @@ async fn create_category(
     Extension(app_state): Extension<Arc<AppState>>,
     Json(category): Json<CategoryName>,
 ) -> Result<impl IntoResponse> {
-app_state
+    app_state
         .videos_service
         .create_category(&category.name)
         .await?;

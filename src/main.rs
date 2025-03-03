@@ -1,6 +1,6 @@
-
 use axum::middleware::from_fn_with_state;
 use config::Config;
+use dotenv::dotenv;
 use handlers::auth::{configure_cors, require_api_key};
 use repositories::PostgresRepo;
 use routes::create_routes;
@@ -36,6 +36,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     let config = Config::init();
 
     let api_key = env::var("API_KEY").unwrap_or_else(|_| {

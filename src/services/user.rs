@@ -60,11 +60,7 @@ impl UserService {
         Ok(())
     }
 
-    pub async fn update_username(
-        &self,
-        user: &User,
-        user_update: NameUpdateDto,
-    ) -> Result<()> {
+    pub async fn update_username(&self, user: &User, user_update: NameUpdateDto) -> Result<()> {
         let argon2 = Argon2::default();
         let parsed_hash =
             PasswordHash::new(&user.password).map_err(|_| Error::InternalServerError)?;
@@ -72,8 +68,7 @@ impl UserService {
             .verify_password(user_update.password.as_bytes(), &parsed_hash)
             .map_err(|_| Error::BadRequest("Invalid password!".to_string()))?;
 
-         self
-            .repo
+        self.repo
             .update_username(user.id, &user_update.name)
             .await?;
 

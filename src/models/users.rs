@@ -11,7 +11,7 @@ pub enum UserRole {
 }
 
 impl UserRole {
-    pub fn to_str(self) ->&'static str {
+    pub fn to_str(self) -> &'static str {
         match self {
             Self::Admin => "admin",
             Self::User => "user",
@@ -34,7 +34,6 @@ pub struct User {
     #[serde(rename = "updatedAt")]
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Validate, Debug, Default, Clone, Serialize, Deserialize)]
 pub struct RegisterUserDto {

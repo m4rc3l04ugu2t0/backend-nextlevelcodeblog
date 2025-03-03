@@ -1,3 +1,5 @@
+use std::env;
+
 #[derive(Debug, Clone)]
 pub struct Config {
     pub database_url: String,
@@ -8,10 +10,12 @@ pub struct Config {
 
 impl Config {
     pub fn init() -> Config {
-        let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-        let jwt_secret = std::env::var("JWT_SECRET_KEY").expect("JWT_SECRET_KEY must be set");
-        let jwt_maxage = std::env::var("JWT_MAXAGE").expect("JWT_MAXAGE must be set");
-        let port = std::env::var("PORT").expect("PORT must be set");
+        let database_url =env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set")
+        .replace("postgres://", "postgresql://") + "&prepare=false";
+        let jwt_secret =env::var("JWT_SECRET_KEY").expect("JWT_SECRET_KEY must be set");
+        let jwt_maxage =env::var("JWT_MAXAGE").expect("JWT_MAXAGE must be set");
+        let port =env::var("PORT").expect("PORT must be set");
 
         Config {
             database_url,

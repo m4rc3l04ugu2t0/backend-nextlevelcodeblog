@@ -11,7 +11,6 @@ use uuid::Uuid;
 
 use crate::{
     mail::mails::{send_forgot_password_email, send_welcome_email},
-
     models::users::User,
     repositories::{auth_repo::AuthRepository, user_repo::UserRepository, PostgresRepo},
     Error, Result,
@@ -47,7 +46,6 @@ impl AuthService {
             .await?
             .is_some()
         {
-
             return Err(Error::BadRequest("Unavailable.".to_string()));
         }
 
@@ -77,9 +75,7 @@ impl AuthService {
             .repo
             .get_user(None, None, Some(email), None)
             .await?
-            .ok_or(Error::BadRequest(
-                "Unavailable.".to_string(),
-            ))?;
+            .ok_or(Error::BadRequest("Unavailable.".to_string()))?;
 
         if !user.verified {
             return Err(Error::BadRequest("Unavailable.".to_string()));
@@ -152,11 +148,9 @@ impl AuthService {
 
         let email_sent = send_forgot_password_email(&user.email, &reset_link, &user.name).await;
 
-
-       if email_sent.is_err() {
-
-        return Err(Error::InternalServerError)
-       }
+        if email_sent.is_err() {
+            return Err(Error::InternalServerError);
+        }
 
         Ok(())
     }
