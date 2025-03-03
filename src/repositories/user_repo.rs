@@ -33,26 +33,26 @@ impl UserRepository for PostgresRepo {
 
         if let Some(user_id) = user_id {
             user = sqlx::query_as::<_, User>(
-                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE id = $1"#,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role FROM users WHERE id = $1"#,
             )
             .bind(user_id)
             .fetch_optional(&self.pool).await?;
         } else if let Some(name) = name {
             user = sqlx::query_as::<_, User>(
-                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE name = $1"#,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role FROM users WHERE name = $1"#,
             )
             .bind(name)
             .fetch_optional(&self.pool).await?;
         } else if let Some(email) = email {
             user = sqlx::query_as::<_, User>(
-                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE email = $1"#,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role FROM users WHERE email = $1"#,
             )
             .bind(email)
             .fetch_optional(&self.pool).await?;
         } else if let Some(token) = token {
             user = sqlx::query_as::<_, User>(
                 r#"
-                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
                 FROM users
                 WHERE verification_token = $1"#,
             )
@@ -85,7 +85,7 @@ impl UserRepository for PostgresRepo {
             UPDATE users
             SET name = $1, updated_at = Now()
             WHERE id = $2
-            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
             "#
         )
         .bind(new_username)

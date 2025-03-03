@@ -40,7 +40,7 @@ impl AuthRepository for PostgresRepo {
             r#"
             INSERT INTO users (id, name, email, password, verification_token, token_expires_at)
             VALUES ($1, $2, $3, $4, $5, $6)
-            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
             "#,
         )
         .bind(Uuid::now_v7())
