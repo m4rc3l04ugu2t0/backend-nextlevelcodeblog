@@ -67,9 +67,3 @@ CREATE TABLE video_categories (
     FOREIGN KEY (video_id) REFERENCES videos(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
 );
-
--- INSERT INTO videos (id, title, youtube_id, duration, views)
--- VALUES ('019525ae-cf13-71d3-a7ac-e2edde5c7adb', 'Título Teste', 'yt12345', '10:00', 100)
--- RETURNING id, title, youtube_id, duration, views;
-SELECT * FROM information_schema.columns
-WHERE table_name = 'users' AND column_name = 'role';

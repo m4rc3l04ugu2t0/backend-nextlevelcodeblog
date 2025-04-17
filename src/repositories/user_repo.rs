@@ -1,8 +1,10 @@
 use async_trait::async_trait;
-use tracing::{info_span, instrument};
 use uuid::Uuid;
 
-use crate::{models::users::User, Result};
+use crate::{
+    models::users::{User, UserRole},
+    Result,
+};
 
 use super::PostgresRepo;
 
@@ -21,10 +23,8 @@ pub trait UserRepository: Send + Sync {
     async fn delete_user(&self, user_id: Uuid) -> Result<()>;
 }
 
-
 #[async_trait]
 impl UserRepository for PostgresRepo {
-    #[instrument(skip(self))]
     async fn get_user(
         &self,
         user_id: Option<Uuid>,
@@ -32,72 +32,44 @@ impl UserRepository for PostgresRepo {
         email: Option<&str>,
         token: Option<&str>,
     ) -> Result<Option<User>> {
-        let span = info_span!("get_user", user_id = ?user_id, name = ?name, email = ?email, token = ?token);
-        let _enter = span.enter();
+        let mut user: Option<User> = None;
 
         if let Some(user_id) = user_id {
-            let sql = r#"
-                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
+            user = sqlx::query_as!(
+                User,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE id = $1"#,
+                user_id
+            ).fetch_optional(&self.pool).await?;
+        } else if let Some(name) = name {
+            user = sqlx::query_as!(
+                User,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE name = $1"#,
+                name
+            ).fetch_optional(&self.pool).await?;
+        } else if let Some(email) = email {
+            user = sqlx::query_as!(
+                User,
+                r#"SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole" FROM users WHERE email = $1"#,
+                email
+            ).fetch_optional(&self.pool).await?;
+        } else if let Some(token) = token {
+            user = sqlx::query_as!(
+                User,
+                r#"
+                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
                 FROM users
-                WHERE id = $1
-            "#;
-            tracing::debug!("Fetching user by ID: {}", user_id);
-            let user = sqlx::query_as::<_, User>(sql)
-                .bind(user_id)
-                .fetch_optional(&self.pool)
-                .await?;
-            return Ok(user);
+                WHERE verification_token = $1"#,
+                token
+            )
+            .fetch_optional(&self.pool)
+            .await?;
         }
 
-        if let Some(name) = name {
-            let sql = r#"
-                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
-                FROM users
-                WHERE name = $1
-            "#;
-            tracing::debug!("Fetching user by name: {}", name);
-            let user = sqlx::query_as::<_, User>(sql)
-                .bind(name)
-                .fetch_optional(&self.pool)
-                .await?;
-            return Ok(user);
-        }
-
-        if let Some(email) = email {
-            let sql = r#"
-                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
-                FROM users
-                WHERE email = $1
-            "#;
-            tracing::debug!("Fetching user by email: {}", email);
-            let user = sqlx::query_as::<_, User>(sql)
-                .bind(email)
-                .fetch_optional(&self.pool)
-                .await?;
-            return Ok(user);
-        }
-
-        if let Some(token) = token {
-            let sql = r#"
-                SELECT id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role
-                FROM users
-                WHERE verification_token = $1
-            "#;
-            tracing::debug!("Fetching user by token: {}", token);
-            let user = sqlx::query_as::<_, User>(sql)
-                .bind(token)
-                .fetch_optional(&self.pool)
-                .await?;
-            return Ok(user);
-        }
-
-        tracing::warn!("Invalid combination of parameters");
-        Ok(None)
+        Ok(user)
     }
 
-
     async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()> {
-        sqlx::query!(
+        let _ = sqlx::query!(
             r#"
             UPDATE users
             SET password = $1, updated_at = Now()
@@ -111,18 +83,18 @@ impl UserRepository for PostgresRepo {
 
         Ok(())
     }
-
     async fn update_username(&self, user_id: Uuid, new_username: &str) -> Result<User> {
-        let user = sqlx::query_as::<_, User>(
+        let user = sqlx::query_as!(
+            User,
             r#"
             UPDATE users
             SET name = $1, updated_at = Now()
             WHERE id = $2
-            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role"
-            "#
+            RETURNING id, name, email, password, verified, created_at, updated_at, verification_token, token_expires_at, role as "role: UserRole"
+            "#,
+            new_username,
+            user_id
         )
-        .bind(new_username)
-        .bind(user_id)
         .fetch_one(&self.pool)
         .await?;
 
@@ -130,8 +102,7 @@ impl UserRepository for PostgresRepo {
     }
 
     async fn delete_user(&self, user_id: Uuid) -> Result<()> {
-        sqlx::query("DELETE FROM users WHERE id = $1")
-            .bind(user_id)
+        sqlx::query!("DELETE FROM users WHERE id = $1", user_id)
             .execute(&self.pool)
             .await?;
 
