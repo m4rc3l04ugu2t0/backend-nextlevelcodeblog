@@ -1,0 +1,56 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        WITH post_data AS (\n            SELECT\n                np.id,\n                np.url,\n                np.description,\n                np.author_id,\n                u.name as author_name,\n                np.created_at\n            FROM news_posts np\n            JOIN users u ON np.author_id = u.id\n        )\n        SELECT\n            pd.id,\n            pd.url,\n            pd.description,\n            pd.author_id,\n            pd.author_name,\n            pd.created_at,\n            COALESCE(\n                json_agg(\n                    json_build_object(\n                        'id', pc.id,\n                    'content', pc.content,\n                    'authorId', pc.author_id,\n                    'authorName', u2.name,\n                    'createdAt', pc.created_at\n                    )\n                ) FILTER (WHERE pc.id IS NOT NULL),\n                '[]'\n            ) AS comments\n        FROM post_data pd\n        LEFT JOIN post_comments pc ON pd.id = pc.news_post_id\n        LEFT JOIN users u2 ON pc.author_id = u2.id\n        GROUP BY pd.id, pd.url, pd.description, pd.author_id, pd.author_name, pd.created_at\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "author_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "author_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "comments",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "e9cb3e1a940d31678f822cfb8a736c12437a68389357adf4e6a50f665dbb65ef"
+}
