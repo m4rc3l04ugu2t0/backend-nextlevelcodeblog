@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
+[[bin]]
+name = "backend-nextlevelcodeblog"  # Binary target name
+path = "src/main.rs"  # Path to the entry point
+
 [dependencies]
 anyhow = "1.0.95"
 argon2 = { version = "0.5.3", features = []}
