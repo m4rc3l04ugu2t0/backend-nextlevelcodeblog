@@ -4,8 +4,7 @@ use axum::{
     body::Body,
     extract::Query,
     http::{
-        header::{self, ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE},
-        HeaderMap, HeaderName, Method, Request, StatusCode,
+        header::{self, ACCEPT, AUTHORIZATION, CONTENT_DISPOSITION, CONTENT_TYPE}, HeaderMap, HeaderName, HeaderValue, Method, Request, StatusCode
     },
     middleware::Next,
     routing::{get, post},
@@ -168,9 +167,7 @@ pub fn configure_cors() -> CorsLayer {
     let x_api_key = HeaderName::from_static("x-api-key");
 
     CorsLayer::new()
-        .allow_origin(["http://localhost:3000"
-            .parse()
-            .expect("Invalid origin format")])
+        .allow_origin([env::var("FRONT_URL").expect("FRONT_URL must be set").parse::<HeaderValue>().unwrap()])
         .allow_methods(vec![
             Method::GET,
             Method::POST,
