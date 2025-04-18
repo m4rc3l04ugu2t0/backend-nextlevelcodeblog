@@ -1,7 +1,7 @@
 /target
 .env
 .env.local
-.sqlx
+# .sqlx
 
 
 
