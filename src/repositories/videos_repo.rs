@@ -38,8 +38,17 @@ pub trait VideosRepository: Send + Sync {
 #[async_trait]
 impl VideosRepository for PostgresRepo {
     async fn videos(&self) -> Result<Vec<Video>> {
-        let videos = sqlx::query_as!(
-            Video,
+        #[derive(sqlx::FromRow)]
+        struct TempVideo {
+            id: Uuid,
+            title: String,
+            youtube_id: String,
+            duration: i32,
+            views: i32,
+            categories: Vec<String>,
+        }
+
+        let temp_videos = sqlx::query_as::<_, TempVideo>(
             r#"
             SELECT
                 v.id,
@@ -47,16 +56,28 @@ impl VideosRepository for PostgresRepo {
                 v.youtube_id,
                 v.duration,
                 v.views,
-                COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as "categories: Vec<String>"
+                COALESCE(array_agg(c.name) FILTER (WHERE c.name IS NOT NULL), '{}') as categories
             FROM videos v
             LEFT JOIN video_categories vc ON v.id = vc.video_id
             LEFT JOIN categories c ON vc.category_id = c.id
             GROUP BY v.id
-            ORDER BY v.title ASC;
-            "#
+            ORDER BY v.title ASC
+            "#,
         )
         .fetch_all(&self.pool)
         .await?;
+
+        let videos = temp_videos
+            .into_iter()
+            .map(|temp_video| Video {
+                id: temp_video.id,
+                title: temp_video.title,
+                youtube_id: temp_video.youtube_id,
+                duration: temp_video.duration.to_string(),
+                views: temp_video.views,
+                categories: temp_video.categories,
+            })
+            .collect();
 
         Ok(videos)
     }
@@ -129,16 +150,15 @@ impl VideosRepository for PostgresRepo {
     }
 
     async fn create_category(&self, category_id: Uuid, category: &str) -> Result<CreateCategory> {
-        let category = sqlx::query_as!(
-            CreateCategory,
+        let category = sqlx::query_as::<_, CreateCategory>(
             r#"
             INSERT INTO categories (id, name)
             VALUES ($1, $2)
             RETURNING id, name;
             "#,
-            category_id,
-            category
         )
+        .bind(category_id)
+        .bind(category)
         .fetch_one(&self.pool)
         .await?;
 
@@ -160,15 +180,14 @@ impl VideosRepository for PostgresRepo {
     }
 
     async fn get_video_by_youtube_id(&self, youtube_id: &str) -> Result<ResponseVideo> {
-        let video = sqlx::query_as!(
-            ResponseVideo,
+        let video = sqlx::query_as::<_, ResponseVideo>(
             r#"
             SELECT title, duration, views
             FROM videos
             WHERE youtube_id = $1
             "#,
-            youtube_id
         )
+        .bind(youtube_id)
         .fetch_one(&self.pool)
         .await?;
 
@@ -176,13 +195,13 @@ impl VideosRepository for PostgresRepo {
     }
 
     async fn delete_video(&self, video_id: Uuid) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM videos
             WHERE id = $1;
             "#,
-            video_id
         )
+        .bind(video_id)
         .execute(&self.pool)
         .await?;
 
@@ -190,14 +209,14 @@ impl VideosRepository for PostgresRepo {
     }
 
     async fn remove_category_from_video(&self, video_id: Uuid, category_id: Uuid) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM video_categories
             WHERE video_id = $1 AND category_id = $2;
             "#,
-            video_id,
-            category_id
         )
+        .bind(video_id)
+        .bind(category_id)
         .execute(&self.pool)
         .await?;
 

@@ -25,7 +25,7 @@ pub struct User {
     pub name: String,
     pub email: String,
     pub password: String,
-    pub role: UserRole,  // Ensure this field exists
+    pub role: UserRole,
     pub verified: bool,
     pub verification_token: Option<String>,
     pub token_expires_at: Option<DateTime<Utc>>,
