@@ -65,15 +65,15 @@ impl UserRepository for PostgresRepo {
     }
 
     async fn update_password(&self, user_id: Uuid, new_password: &str) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE users
             SET password = $1, updated_at = Now()
             WHERE id = $2
             "#,
-            new_password,
-            user_id
         )
+        .bind(new_password)
+        .bind(user_id)
         .execute(&self.pool)
         .await?;
 

@@ -62,6 +62,11 @@ async fn main() {
         }
     };
 
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Failed to run migrates!");
+
     let db_blog = PostgresRepo::new(pool.clone());
 
     let app_state = AppState {

@@ -155,12 +155,12 @@ impl NewsPostsRepository for PostgresRepo {
     async fn delete_comment(&self, comment_id: &str) -> Result<()> {
         let comment_id = Uuid::parse_str(comment_id).unwrap();
 
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM post_comments WHERE id = $1
             "#,
-            comment_id
         )
+        .bind(comment_id)
         .execute(&self.pool)
         .await?;
 

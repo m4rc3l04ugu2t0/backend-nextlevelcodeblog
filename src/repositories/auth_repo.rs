@@ -61,17 +61,17 @@ impl AuthRepository for PostgresRepo {
         token_expires_at: DateTime<Utc>,
         token: &str,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE users
             SET verification_token = $1,
                 token_expires_at = $2
             WHERE id = $3
             "#,
-            token,
-            token_expires_at,
-            user_id
         )
+        .bind(token)
+        .bind(token_expires_at)
+        .bind(user_id)
         .execute(&self.pool)
         .await?;
 
@@ -79,7 +79,7 @@ impl AuthRepository for PostgresRepo {
     }
 
     async fn verifed_token(&self, token: &str) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE users
             SET verified = true,
@@ -88,8 +88,8 @@ impl AuthRepository for PostgresRepo {
                 token_expires_at = NULL
             WHERE verification_token = $1
             "#,
-            token
         )
+        .bind(token)
         .execute(&self.pool)
         .await?;
 
