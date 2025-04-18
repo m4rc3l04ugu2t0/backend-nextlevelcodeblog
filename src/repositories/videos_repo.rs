@@ -90,15 +90,15 @@ impl VideosRepository for PostgresRepo {
         duration: &str,
         views: Option<i32>,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO videos (id, title, youtube_id, duration, views)
              VALUES ($1, $2, $3, $4, $5)",
-            id,
-            title,
-            youtube_id,
-            duration,
-            views
         )
+        .bind(id)
+        .bind(title)
+        .bind(youtube_id)
+        .bind(duration)
+        .bind(views)
         .execute(&self.pool)
         .await?;
 
@@ -113,7 +113,7 @@ impl VideosRepository for PostgresRepo {
         duration: Option<&str>,
         views: Option<i32>,
     ) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             UPDATE videos
             SET
@@ -123,26 +123,26 @@ impl VideosRepository for PostgresRepo {
                 views = COALESCE($4, views)
             WHERE id = $5
             "#,
-            title,
-            youtube_id,
-            duration,
-            views,
-            video_id
         )
+        .bind(title)
+        .bind(youtube_id)
+        .bind(duration)
+        .bind(views)
+        .bind(video_id)
         .execute(&self.pool)
         .await?;
 
         Ok(())
     }
     async fn add_category_to_video(&self, video_id: Uuid, category_id: Uuid) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             INSERT INTO video_categories (video_id, category_id)
             VALUES ($1, $2);
             "#,
-            video_id,
-            category_id
         )
+        .bind(video_id)
+        .bind(category_id)
         .execute(&self.pool)
         .await?;
 
@@ -166,13 +166,13 @@ impl VideosRepository for PostgresRepo {
     }
 
     async fn delete_category(&self, category_id: Uuid) -> Result<()> {
-        sqlx::query!(
+        sqlx::query(
             r#"
             DELETE FROM categories
             WHERE id = $1;
             "#,
-            category_id
         )
+        .bind(category_id)
         .execute(&self.pool)
         .await?;
 
